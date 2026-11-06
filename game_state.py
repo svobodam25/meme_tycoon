@@ -51,6 +51,9 @@ ACHIEVEMENTS = (
 OFFLINE_LIMIT = 8 * 60 * 60
 PRESTIGE_COST = 1_000_000
 MAX_VALUE = 1e100
+BASE_SLOTS = 8
+SLOTS_PER_EXPANSION = 8
+MAX_PLOT_LEVEL = 6
 
 
 def save_path():
@@ -69,9 +72,45 @@ class GameState:
     prestige: int = 0
     achievements: list = field(default_factory=list)
     cargo: int | None = None
+    plot_level: int = 0
+    base_slots: int = BASE_SLOTS
+
+    @property
+    def capacity(self):
+        return self.base_slots + self.plot_level*SLOTS_PER_EXPANSION
+
+    @property
+    def used_slots(self):
+        return sum(self.owned) + (self.cargo is not None)
+
+    @property
+    def expansion_price(self):
+        return 1000 * 4**self.plot_level
+
+    def expand_plot(self):
+        if self.plot_level >= MAX_PLOT_LEVEL or self.coins < self.expansion_price:
+            return False
+        self.coins -= self.expansion_price
+        self.plot_level += 1
+        return True
+
+    def sell_price(self, index, unit):
+        if not 0 <= index < len(BRAINROTS) or not 0 <= unit < len(self.levels[index]):
+            return 0
+        return math.ceil(BRAINROTS[index].cost*self.levels[index][unit]*.5)
+
+    def sell(self, index, unit):
+        price = self.sell_price(index,unit)
+        if not price:
+            return False
+        del self.levels[index][unit]
+        self.owned[index] -= 1
+        # Selling frees a slot; it is not production income for prestige.
+        self.coins = min(MAX_VALUE,self.coins+price)
+        return True
 
     def capture(self, index):
-        if self.cargo is not None or BRAINROTS[index].location > self.location:
+        if self.cargo is not None or BRAINROTS[index].location > self.location or self.used_slots >= self.capacity:
             return False
         self.cargo = index
         return True
@@ -159,7 +198,7 @@ class GameState:
     def save(self, path=None, now=None):
         path = Path(path) if path is not None else save_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        data = dict(vars(self), version=2, saved_at=time.time() if now is None else now)
+        data = dict(vars(self), version=3, saved_at=time.time() if now is None else now)
         temporary = path.with_suffix(".tmp")
         temporary.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         temporary.replace(path)
@@ -170,7 +209,7 @@ class GameState:
         if not path.exists():
             return cls(), 0.0
         data = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2):
+        if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3):
             raise ValueError("Neznámý formát uložené hry.")
         def number(key, maximum=MAX_VALUE, integer=False):
             value = data[key]
@@ -207,6 +246,13 @@ class GameState:
                                   or BRAINROTS[cargo].location > location):
             raise ValueError("Neplatný nesený Brainrot.")
         state.cargo = cargo
+        if data["version"] < 3:
+            state.base_slots = max(BASE_SLOTS,math.ceil(state.used_slots/SLOTS_PER_EXPANSION)*SLOTS_PER_EXPANSION)
+        else:
+            state.plot_level = number("plot_level",MAX_PLOT_LEVEL,True)
+            state.base_slots = number("base_slots",MAX_VALUE,True)
+            if state.base_slots < BASE_SLOTS or state.base_slots % SLOTS_PER_EXPANSION or state.used_slots > state.capacity:
+                raise ValueError("Neplatná kapacita pozemku.")
         elapsed = min(OFFLINE_LIMIT, max(0, (time.time() if now is None else now) - saved_at))
         offline = state.tick(elapsed)
         return state, offline

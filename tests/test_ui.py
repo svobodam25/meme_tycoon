@@ -25,11 +25,11 @@ class InterfaceTests(unittest.TestCase):
                 game.location=0
                 game.draw()
                 game.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_e,mod=0))
-                with patch.object(game,"mouse",return_value=(870,435)):
+                with patch.object(game,"mouse",return_value=(230,300)):
                     game.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN,button=1))
-                self.assertEqual(game.selected_units[0],1)
+                self.assertEqual(game.inventory.selected,(0,1))
                 game.draw()
-                with patch.object(game,"mouse",return_value=(1000,435)):
+                with patch.object(game,"mouse",return_value=(1000,685)):
                     game.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN,button=1))
                 self.assertEqual(game.state.levels[0],[1,2])
                 self.assertEqual(game.state.coins,25)
@@ -47,7 +47,7 @@ class InterfaceTests(unittest.TestCase):
                 game.state.capture(0)
                 game.state.deposit()
                 game.draw()
-                with patch.object(game, "mouse", return_value=(1000, 435)):
+                with patch.object(game, "mouse", return_value=(1000, 685)):
                     action = next(action for rect, action in game.buttons if rect.collidepoint(game.mouse()))
                     action()
                 self.assertEqual(game.state.owned[0], 1)
@@ -58,7 +58,7 @@ class InterfaceTests(unittest.TestCase):
                     game.unlock()
                 for location in range(len(LOCATIONS)):
                     game.location = location
-                    for tab in ("Vylepšení", "Úspěchy", "Prestige"):
+                    for tab in ("Inventář", "Úspěchy", "Prestige"):
                         game.tab = tab
                         game.draw()
                 game.modal = True

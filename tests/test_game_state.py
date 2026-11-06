@@ -74,25 +74,34 @@ class EconomyTests(unittest.TestCase):
             GameState().save(path)
             data = json.loads(path.read_text())
             for key, value in (("coins", float("nan")), ("owned", [-1]*6), ("levels", [1]),
-                               ("location", 9), ("achievements", [False]), ("version", 3)):
+                               ("location", 9), ("achievements", [False]), ("version", 4)):
                 broken = dict(data)
                 broken[key] = value
                 path.write_text(json.dumps(broken))
                 with self.subTest(key=key), self.assertRaises(ValueError):
                     GameState.load(path)
 
-    def test_new_save_and_capture_caps(self):
+    def test_new_save_capacity_and_max_level(self):
         with tempfile.TemporaryDirectory() as directory:
             s, offline = GameState.load(Path(directory)/"missing.json")
             self.assertEqual((s.coins, offline), (100, 0))
         s.coins = 1e100
-        s.owned[0] = 500
-        s.levels[0] = [100]*500
+        s.owned[0] = 8
+        s.levels[0] = [100]*8
         self.assertFalse(s.capture(0))
+        self.assertTrue(s.expand_plot())
+        catch(s,0)
+        self.assertEqual(s.owned[0],9)
+        self.assertEqual(s.levels[0][-1],1)
         self.assertFalse(s.upgrade(0))
         before = s.coins
         s.tick(-10)
         self.assertEqual(before, s.coins)
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/"large.json"
+            s.save(path)
+            loaded,_=GameState.load(path)
+            self.assertEqual(loaded.owned[0],9)
 
     def test_all_eight_locations_and_sixteen_species(self):
         self.assertEqual(len(LOCATIONS), 8)
@@ -101,6 +110,8 @@ class EconomyTests(unittest.TestCase):
         for level in range(8):
             self.assertEqual(s.location, level)
             for index in (level*2,level*2+1):
+                if s.used_slots >= s.capacity:
+                    self.assertTrue(s.expand_plot())
                 catch(s,index)
                 self.assertTrue(s.upgrade(index,0))
             self.assertEqual(s.unlock(),level<7)

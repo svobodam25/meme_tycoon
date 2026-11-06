@@ -5,7 +5,7 @@ import time
 
 import pygame
 
-from game_state import BRAINROTS, LOCATIONS
+from game_state import BASE_SLOTS, BRAINROTS, LOCATIONS, SLOTS_PER_EXPANSION
 
 OFFSET = 4000
 WIDTH, HEIGHT = 1280, 3100 + OFFSET
@@ -24,10 +24,19 @@ THEMES = (
 )
 SPEED = 245
 CAPTURE_TIME = 1.4
+HOME_ROW_STEP = 144
 
 
 class World:
-    def __init__(self):
+    def __init__(self, plot_level=0, base_slots=BASE_SLOTS):
+        self.plot_level = plot_level
+        self.capacity = base_slots+plot_level*SLOTS_PER_EXPANSION
+        self.columns = 4
+        width = 640+plot_level*40
+        height = 330+math.ceil(self.capacity/self.columns)*HOME_ROW_STEP
+        self.home = pygame.Rect(640-width//2,HOME.top,width,height)
+        self.height = max(HEIGHT,self.home.bottom+120)
+        self.workshop = pygame.Rect(self.home.right-185,self.home.bottom-115,140,80)
         self.player = pygame.Vector2(SPAWN)
         self.camera = 0
         self.target = None
@@ -39,55 +48,18 @@ class World:
             for n, (x, dy) in enumerate(((330, 140), (900, 210), (430, 430), (970, 490))):
                 self.encounters.append({"index": zone*2+n%2, "pos": (x, top+dy), "cooldown": 0.0})
         self.background = self.build_background()
+        self.add_home_obstacles()
 
     @property
     def at_home(self):
-        return HOME.collidepoint(self.player)
+        return self.home.collidepoint(self.player)
 
     @property
     def region(self):
         return sum(self.player.y < y for y, _ in GATES)
 
-    def build_home_background(self):
-        image = pygame.Surface((WIDTH, 3100))
-        image.fill("#729862")
-        pygame.draw.rect(image, "#86aa6c", (0, 2400, WIDTH, 700))
-        rng = random.Random(17)
-        for _ in range(1100):
-            x, y = rng.randrange(WIDTH), rng.randrange(2400,3100)
-            pygame.draw.circle(image, "#90ad75", (x, y), rng.choice((1, 2, 3)))
-        pygame.draw.rect(image, "#c4b895", (562, 55, 156, 2690), border_radius=35)
-        pygame.draw.rect(image, "#dacfac", (579, 55, 122, 2690), border_radius=35)
-        # Fenced home plot, with an opening aligned to the northbound road.
-        home = HOME.move(0,-OFFSET)
-        pygame.draw.rect(image,"#527d56",home.inflate(20,20),border_radius=22)
-        pygame.draw.rect(image,"#a5bf7e",home,border_radius=18)
-        for start,end in (((250,2490),(550,2490)),((730,2490),(1030,2490)),((250,2490),(250,3000)),((1030,2490),(1030,3000)),((250,3000),(1030,3000))):
-            pygame.draw.line(image,"#ecddbb",start,end,7)
-            self.obstacles.append(pygame.Rect(min(start[0],end[0])-3,min(start[1],end[1])-3,
-                                              abs(end[0]-start[0])+7,abs(end[1]-start[1])+7))
-        # Workbench / house at the back of the plot.
-        # Small detailed workshop off to the side, leaving room for the collection.
-        pygame.draw.ellipse(image,"#6c8a53",(760,2780,235,150))
-        pygame.draw.rect(image,"#f1ddad",(790,2790,185,105),border_radius=8)
-        pygame.draw.rect(image,"#cfbb90",(790,2875,185,20))
-        pygame.draw.polygon(image,"#70463f",[(768,2797),(882,2715),(996,2797)])
-        pygame.draw.polygon(image,"#c67e60",[(768,2786),(882,2704),(996,2786)])
-        for y in range(2740,2786,12):
-            width = (y-2704)*1.39
-            pygame.draw.line(image,"#ac6954",(882-width,y),(882+width,y),2)
-        pygame.draw.rect(image,"#4a675c",(845,2820,53,75),border_radius=7)
-        pygame.draw.circle(image,"#f3d681",(887,2860),4)
-        pygame.draw.rect(image,"#78b8c7",(917,2817,35,34),border_radius=5)
-        pygame.draw.line(image,"#f8ebc3",(934,2817),(934,2851),3)
-        pygame.draw.line(image,"#f8ebc3",(917,2834),(952,2834),3)
-        self.obstacles.append(pygame.Rect(790,2790,185,105))
-        return image
-
     def build_background(self):
         # Static terrain is drawn once; sprites and effects are rendered each frame.
-        home_background = self.build_home_background()
-        self.obstacles = [rect.move(0,OFFSET) for rect in self.obstacles]
         image = pygame.Surface((WIDTH,HEIGHT))
         image.fill(THEMES[-1][0])
         rng = random.Random(31)
@@ -149,26 +121,71 @@ class World:
                     pygame.draw.polygon(image,light,[(x,y-76),(x-2,y+15),(x+28,y-13)])
                     pygame.draw.line(image,"#f9eada",(x,y-65),(x-20,y-13),2)
                     self.obstacles.append(pygame.Rect(x-25,y-10,50,35))
-        image.blit(home_background,(0,OFFSET+2450),area=(0,2450,WIDTH,650))
-        # Garden paths, flower beds, fence posts and individual display pads.
-        for y in range(HOME.top+15,HOME.bottom,28):
-            for x in (HOME.left,HOME.right):
-                pygame.draw.rect(image,"#f6e6be",(x-6,y-4,12,17),border_radius=3)
-        for n in range(len(BRAINROTS)):
-            x,y = self.home_position(n)
-            pygame.draw.ellipse(image,"#6e8c5c",(x-44,y-5,88,38))
-            pygame.draw.ellipse(image,"#d3d4a0",(x-40,y-9,80,34))
-            pygame.draw.ellipse(image,"#a7c784",(x-32,y-8,64,24))
-        for x in (305,975):
-            for n in range(5):
-                y=HOME.top+50+n*39
-                pygame.draw.circle(image,"#5a8b59",(x,y),11)
-                pygame.draw.circle(image,"#efbd9d" if n%2 else "#f5df86",(x,y-3),6)
+        pygame.draw.rect(image,"#86aa6c",(0,OFFSET+2450,WIDTH,HEIGHT-(OFFSET+2450)))
         return image
 
-    @staticmethod
-    def home_position(index):
-        return 350+(index%4)*125, OFFSET+2605+(index//4)*92
+    def add_home_obstacles(self):
+        h = self.home
+        for start,end in (((h.left,h.top),(550,h.top)),((730,h.top),(h.right,h.top)),
+                          ((h.left,h.top),(h.left,h.bottom)),((h.right,h.top),(h.right,h.bottom)),
+                          ((h.left,h.bottom),(h.right,h.bottom))):
+            self.obstacles.append(pygame.Rect(min(start[0],end[0])-4,min(start[1],end[1])-4,
+                                              abs(end[0]-start[0])+8,abs(end[1]-start[1])+8))
+        self.obstacles.append(self.workshop.copy())
+
+    def home_position(self,slot):
+        row,col = divmod(slot,self.columns)
+        pitch = 124+self.plot_level*6
+        x = (640-96-pitch,640-96,640+96,640+96+pitch)[col]
+        return x,self.home.top+150+row*HOME_ROW_STEP
+
+    def visible_home_slots(self):
+        first_row = max(0,int((self.camera-self.home.top-240)//HOME_ROW_STEP))
+        last_row = max(0,int((self.camera+820-self.home.top+50)//HOME_ROW_STEP)+1)
+        return range(first_row*self.columns,min(self.capacity,last_row*self.columns))
+
+    def home_units(self,state):
+        """One actor per individual; skip rows outside the camera before enumerating."""
+        slots = self.visible_home_slots()
+        offset = 0
+        for species,amount in enumerate(state.owned):
+            start = max(0,slots.start-offset)
+            stop = min(amount,slots.stop-offset)
+            for unit in range(start,stop):
+                x,y = self.home_position(offset+unit)
+                yield species,unit,x,y
+            offset += amount
+
+    def draw_home(self,game):
+        cy,h = self.camera,self.home
+        if h.bottom < cy or h.top > cy+820:
+            return
+        # Draw only the viewport, even for very large migrated collections.
+        game.box((h.x-10,h.y-cy-10,h.width+20,h.height+20),"#527d56",20)
+        game.box((h.x,h.y-cy,h.width,h.height),"#a5bf7e",14)
+        pygame.draw.rect(game.surface,"#d4c797",(607,h.top-cy,66,h.height-35))
+        pygame.draw.rect(game.surface,"#dacfac",(562,OFFSET+2450-cy,156,h.top-(OFFSET+2450)+6))
+        for start,end in (((h.left,h.top),(550,h.top)),((730,h.top),(h.right,h.top)),
+                          ((h.left,h.top),(h.left,h.bottom)),((h.right,h.top),(h.right,h.bottom)),
+                          ((h.left,h.bottom),(h.right,h.bottom))):
+            pygame.draw.line(game.surface,"#ecddbb",(start[0],start[1]-cy),(end[0],end[1]-cy),7)
+        for y in range(max(h.top+12,int(cy)//28*28),min(h.bottom,int(cy)+848),28):
+            for x in (h.left,h.right):
+                game.box((x-6,y-cy-4,12,17),"#f6e6be",3)
+        for slot in self.visible_home_slots():
+            x,y = self.home_position(slot)
+            pygame.draw.ellipse(game.surface,"#6e8c5c",(x-47,y-cy-4,94,38))
+            pygame.draw.ellipse(game.surface,"#d3d4a0",(x-43,y-cy-9,86,34))
+            pygame.draw.ellipse(game.surface,"#a7c784",(x-35,y-cy-8,70,24))
+        r = self.workshop.move(0,-cy)
+        if r.bottom > -100 and r.top < 920:
+            pygame.draw.ellipse(game.surface,"#6c8a53",r.inflate(25,25))
+            game.box(r,"#f1ddad",7)
+            pygame.draw.polygon(game.surface,"#b97056",[(r.left-16,r.top+3),(r.centerx,r.top-55),(r.right+16,r.top+3)])
+            game.box((r.x+36,r.y+25,38,55),"#4a675c",5)
+            game.box((r.x+94,r.y+21,25,26),"#78b8c7",3)
+            pygame.draw.line(game.surface,"#f8ebc3",(r.x+106,r.y+21),(r.x+106,r.y+47),2)
+        game.text(f"POZEMEK Lv {self.plot_level+1} · {self.capacity} míst",640,h.top+45-cy,23,"#f0f1cf",True,True)
 
     def nearest(self, state):
         candidates = [(self.player.distance_to(e["pos"]), i) for i,e in enumerate(self.encounters)
@@ -179,7 +196,7 @@ class World:
         return index if distance <= 92 else None
 
     def blocked(self, point, state):
-        if not 35 <= point.x <= WIDTH-35 or not 60 <= point.y <= HEIGHT-35:
+        if not 35 <= point.x <= WIDTH-35 or not 60 <= point.y <= self.height-35:
             return True
         if any(point.y < y+23 and state.location < level for y,level in GATES):
             return True
@@ -208,7 +225,9 @@ class World:
         if target != self.target or not holding or direction.length_squared():
             self.progress = 0
         self.target = target
-        if target is not None and holding and not direction.length_squared():
+        if state.used_slots >= state.capacity:
+            self.progress = 0
+        if target is not None and holding and not direction.length_squared() and state.used_slots < state.capacity:
             self.progress += dt
             if self.progress >= CAPTURE_TIME:
                 encounter = self.encounters[target]
@@ -217,7 +236,7 @@ class World:
                     game.notify("Chyceno! Dones Brainrota na svůj pozemek směrem na jih.")
                     game.save()
                 else:
-                    game.notify("Tohoto Brainrota už máš maximální počet.")
+                    game.notify("Nemáš volný slot. Prodej Brainrota nebo rozšiř pozemek.")
                 self.progress = 0
 
     def interact(self, game):
@@ -233,16 +252,19 @@ class World:
                 else:
                     game.notify(f"Na otevření brány potřebuješ {LOCATIONS[level][1]:,} Coins.")
                 return
+        if self.nearest(game.state) is not None and game.state.used_slots >= game.state.capacity:
+            game.notify("Pozemek je plný. Doma prodej Brainrota nebo kup rozšíření.")
 
     def draw(self, game):
         state = game.state
-        self.camera = max(0,min(HEIGHT-820,self.player.y-440))
+        self.camera = max(0,min(self.height-820,self.player.y-440))
         cy = self.camera
         surface = game.surface
+        surface.fill("#86aa6c")
         surface.blit(self.background,(0,-int(cy)))
+        self.draw_home(game)
         # Region labels on the ground.
         labels = [(name.upper(),1810+OFFSET-zone*800) for zone,(name,_) in enumerate(LOCATIONS)]
-        labels.append(("TVŮJ POZEMEK",2520+OFFSET))
         for title,y in labels:
             if -50 < y-cy < 820:
                 game.text(title,640,y-cy,25,"#e5edcd",True,True)
@@ -260,10 +282,8 @@ class World:
         for i,e in enumerate(self.encounters):
             if e["cooldown"] <= 0 and BRAINROTS[e["index"]].location <= state.location:
                 actors.append((e["pos"][1], "wild", i))
-        home_actors = [i for i in range(len(BRAINROTS)) if state.owned[i]]
-        for i in home_actors:
-            x,y = self.home_position(i)
-            actors.append((y,"home",(i,x)))
+        for species,unit,x,y in self.home_units(state):
+            actors.append((y,"home",(species,unit,x)))
         actors.append((self.player.y,"player",None))
         for y,kind,data in sorted(actors, key=lambda a:a[0]):
             if not -120 < y-cy < 920:
@@ -291,7 +311,7 @@ class World:
                     e = self.encounters[data]
                     i,x = e["index"],e["pos"][0]
                 else:
-                    i,x = data
+                    i,unit,x = data
                 b = BRAINROTS[i]
                 if kind == "wild" and self.target == data and state.cargo is None:
                     pygame.draw.ellipse(surface,"#e0fa99",(x-49,y-cy+20,98,29),3)
@@ -300,8 +320,8 @@ class World:
                     game.box((x-142,y-cy-96,284,27),"#24323d",8)
                     game.text(b.name,x,y-cy-83,14,"#f5f1de",True,True)
                 else:
-                    game.box((x+25,y-cy-5,40,21),"#24323d",7)
-                    game.text(f"×{state.owned[i]}",x+45,y-cy+5,12,"#f5f1de",True,True)
+                    game.box((x-54,y-cy+33,108,23),"#24323d",7)
+                    game.text(f"#{unit+1} · Lv {state.levels[i][unit]}",x,y-cy+44,14,"#f5f1de",True,True)
                 if kind == "wild":
                     game.text(b.rarity,x,y-cy+44,12,"#fff2c7",True,True)
         # Fixed HUD; the map continues behind it.
@@ -310,15 +330,16 @@ class World:
         game.text("Tvůj pozemek" if self.at_home else LOCATIONS[self.region][0],40,63,17,"#afc7b4")
         game.text(f"{self.short(state.coins)} Coins",410,32,24,"#d3f878",True)
         game.text(f"Produkce {self.short(state.income)} / s",680,37,18,"#eaf0dd")
+        game.text(f"Sloty {state.used_slots} / {state.capacity}",680,67,14,"#efb2a0" if state.used_slots>=state.capacity else "#afc7b4")
         game.button("Správa pozemku · E",(950,24,306,58),lambda:self.interact(game),self.at_home,True)
         # Small north-up minimap with player position and home marker.
         game.box((1133,111,123,205),"#19282b",12)
         for zone,theme in enumerate(THEMES):
-            top = 122+(1650+OFFSET-zone*800)/HEIGHT*182
-            pygame.draw.rect(surface,theme[1],(1145,top,98,800/HEIGHT*182+1))
-        pygame.draw.rect(surface,"#adc589",(1145,122+(OFFSET+2450)/HEIGHT*182,98,22))
+            top = 122+(1650+OFFSET-zone*800)/self.height*182
+            pygame.draw.rect(surface,theme[1],(1145,top,98,800/self.height*182+1))
+        pygame.draw.rect(surface,"#adc589",(1145,122+self.home.top/self.height*182,98,self.home.height/self.height*182))
         pygame.draw.line(surface,"#dfd5af",(1194,124),(1194,301),3)
-        pygame.draw.circle(surface,"#ffffff",(int(1145+self.player.x/WIDTH*98),int(122+self.player.y/HEIGHT*182)),5)
+        pygame.draw.circle(surface,"#ffffff",(int(1145+self.player.x/WIDTH*98),int(122+self.player.y/self.height*182)),5)
         game.text("N",1194,123,13,"#f5f4d9",True,True)
         context = "WASD / šipky · Vydej se na sever a hledej Brainroty."
         if state.cargo is not None:
@@ -326,7 +347,7 @@ class World:
         elif self.at_home:
             context = "Tvůj pozemek · E otevře správu · Na lov vyraz směrem na sever ↑"
         elif self.target is not None:
-            context = "Podrž E a nehýbej se: chyť Brainrota. Potom ho dones domů."
+            context = "Pozemek je plný. Doma prodej Brainrota nebo kup rozšíření." if state.used_slots>=state.capacity else "Podrž E a nehýbej se: chyť Brainrota. Potom ho dones domů."
         else:
             for y,level in GATES:
                 if state.location == level-1 and abs(self.player.y-(y+30))<115:

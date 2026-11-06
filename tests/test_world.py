@@ -95,12 +95,13 @@ class WorldTests(unittest.TestCase):
 
     def test_fence_house_and_world_boundaries(self):
         g = self.game
-        g.world.player.update(290, 2660+OFFSET)
+        g.world.player.update(g.world.home.left+40, 2660+OFFSET)
         self.advance(2, (-1,0))
-        self.assertGreater(g.world.player.x, HOME.left)
-        g.world.player.update(880, 2760+OFFSET)
+        self.assertGreater(g.world.player.x, g.world.home.left)
+        workshop=next(rect for rect in g.world.obstacles if 80<rect.width<200 and 50<rect.height<120 and rect.top>HOME.top)
+        g.world.player.update(workshop.centerx,workshop.top-35)
         self.advance(1, (0,1))
-        self.assertLess(g.world.player.y, 2790+OFFSET)
+        self.assertLess(g.world.player.y, workshop.top)
         g.world.player.update(640, 2450+OFFSET)
         self.advance(1, (0,1))
         self.assertTrue(g.world.at_home)

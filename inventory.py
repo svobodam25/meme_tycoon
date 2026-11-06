@@ -1,9 +1,9 @@
-"""An unbounded, virtualized grid of individual owned Brainrots."""
+"""A virtualized grid of individual Brainrots and plot management."""
 import math
 
 import pygame
 
-from game_state import BRAINROTS, LOCATIONS
+from game_state import BRAINROTS, LOCATIONS, MAX_PLOT_LEVEL, SLOTS_PER_EXPANSION
 
 GRID = pygame.Rect(28, 234, 824, 504)
 COLS, STEP_X, STEP_Y = 5, 164, 168
@@ -70,7 +70,10 @@ class Inventory:
     def name(game, name, x, y, width, size=14):
         """Wrap at word boundaries so full names remain legible in small slots."""
         words, lines, current = name.split(), [], ""
-        font = pygame.font.SysFont("segoeui,dejavusans,arial",size,True)
+        key = (size,True)
+        if key not in game.fonts:
+            game.fonts[key] = pygame.font.SysFont("segoeui,dejavusans,arial",size,True)
+        font = game.fonts[key]
         for word in words:
             candidate = (current+" "+word).strip()
             if current and font.size(candidate)[0] > width:
@@ -87,14 +90,17 @@ class Inventory:
         self.clamp(state)
         total = sum(state.owned)
         game.text("TVŮJ INVENTÁŘ",28,175,28,"#eef1e7",True)
-        game.text(f"{total} Brainrotů · každý úlovek má vlastní slot a level",28,211,16,"#98a5b7")
+        full = state.used_slots >= state.capacity
+        game.text(f"{state.used_slots} / {state.capacity} slotů · Pozemek Lv {state.plot_level+1}"+(" · PLNO" if full else ""),28,211,16,"#efb2a0" if full else "#98a5b7")
+        expansion = f"Pozemek +{SLOTS_PER_EXPANSION} slotů · {self.short(state.expansion_price)} Coins" if state.plot_level < MAX_PLOT_LEVEL else "Pozemek plně rozšířený"
+        game.button(expansion,(470,179,382,43),game.expand_plot,state.plot_level<MAX_PLOT_LEVEL and state.coins>=state.expansion_price,True)
         game.box((876,177,376,571),"#1b2330",18)
         if not total:
             game.box(GRID,"#19212d",18)
             game.text("Tvoje sbírka začíná prvním úlovkem.",72,411,25,"#eef1e7",True)
             game.text("Vydej se na sever, podrž E u Brainrota a dones ho domů.",72,457,17,"#98a5b7")
-            game.text("Žádné prázdné sloty.",902,213,22,"#d3f878",True)
-            game.text("Inventář roste s každým úlovkem.",902,254,17,"#98a5b7")
+            game.text(f"Místo pro {state.capacity} Brainrotů.",902,213,22,"#d3f878",True)
+            game.text("Více místa? Rozšiř svůj pozemek.",902,254,17,"#98a5b7")
             game.character(1060,416,"log",BRAINROTS[0].color,1.6)
             game.button("Vyrazit na lov",(902,662,324,52),game.close_menu,True,True)
             return
@@ -114,10 +120,12 @@ class Inventory:
             game.box(rect,"#2a3848" if selected or hover else "#1b2532",14)
             game.box(rect,b.color if selected else "#354052",14,2 if selected else 1)
             game.box((x+12,y+12,5,23),b.color,2)
+            game.character(x+76,y+77,b.shape,b.color,.64)
+            game.box((x+20,y+9,57,21),"#1b2532",5)
+            game.box((x+95,y+9,50,21),"#1b2532",5)
             game.text(f"#{unit+1}",x+24,y+12,13,"#b6c1cc",True)
             game.text(f"Lv {level}",x+101,y+12,13,"#d3f878",True)
-            game.character(x+76,y+70,b.shape,b.color,.77)
-            self.name(game,b.name,x+12,y+115,128)
+            self.name(game,b.name,x+12,y+118,128)
             hitbox = rect.clip(GRID)
             game.buttons.append((hitbox,lambda item=(species,unit):setattr(self,"selected",item)))
         game.surface.set_clip(old_clip)
@@ -132,13 +140,14 @@ class Inventory:
         level = state.levels[species][unit]
         game.text(b.rarity,902,201,13,b.color,True)
         self.name(game,b.name,902,232,326,22)
-        game.character(1064,413,b.shape,b.color,1.78)
+        game.character(1064,415,b.shape,b.color,1.55)
         game.text(f"Kus #{unit+1} · Level {level}",902,528,23,"#eef1e7",True)
         game.text(f"Produkce {self.short(b.production*level*state.multiplier)} Coins / s",902,568,18,"#d3f878")
         game.text(f"Původ: {LOCATIONS[b.location][0]}",902,601,15,"#98a5b7")
         price = state.upgrade_price(species,unit)
         label = f"Vylepšit · {self.short(price)} Coins" if level < 100 else "Maximální level 100"
         game.button(label,(902,662,324,52),lambda:game.upgrade(species,unit),level<100 and state.coins>=price,True)
+        game.button(f"Prodat · {self.short(state.sell_price(species,unit))} Coins",(902,719,324,28),lambda:game.request_sale(species,unit))
         game.text("Kolečko: posouvat · Šipky: vybrat · Home / End: začátek / konec",28,752,15,"#98a5b7")
 
     @staticmethod
