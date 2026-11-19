@@ -23,18 +23,18 @@ BRAINROTS = (
     Brainrot("Tralalero Tralala", "RARE", 180, 7, 0, "#75c5f0", "shark"),
     Brainrot("Brr Brr Patapim", "EPIC", 1200, 30, 1, "#98cb80", "tree"),
     Brainrot("Ballerina Cappuccina", "EPIC", 6500, 120, 1, "#f4a9cf", "cup"),
-    Brainrot("Bombardiro Crocodilo", "LEGENDARY", 32000, 350, 2, "#e4c165", "croc"),
-    Brainrot("La Vacca Saturno", "MYTHICAL", 175000, 1000, 2, "#c0a2f1", "planet"),
-    Brainrot("Chimpanzini Bananini", "MYTHICAL", 320000, 1500, 3, "#edd067", "banana"),
-    Brainrot("Bananita Dolphinita", "MYTHICAL", 560000, 2400, 3, "#77dccc", "dolphin"),
-    Brainrot("Frigo Camelo", "CELESTIAL", 1100000, 3200, 4, "#acdff2", "fridge"),
-    Brainrot("Penguino Cocosino", "CELESTIAL", 1800000, 4500, 4, "#d3edf7", "penguin"),
-    Brainrot("Dragon Cannelloni", "DIVINE", 3600000, 6500, 5, "#f79869", "dragon"),
-    Brainrot("Cactus Hipopotamo", "DIVINE", 6500000, 8500, 5, "#a4d87c", "cactus"),
-    Brainrot("Neon Capybara", "SECRET", 13000000, 11000, 6, "#f29fe2", "capybara"),
-    Brainrot("Disco Axolotlo", "SECRET", 21000000, 14000, 6, "#a89df3", "axolotl"),
-    Brainrot("Il Re del Brainrot", "TRANSCENDENT", 45000000, 18000, 7, "#f6d379", "king"),
-    Brainrot("Serafino Galattico", "TRANSCENDENT", 80000000, 24000, 7, "#e6ddff", "angel"),
+    Brainrot("Bombardiro Crocodilo", "LEGENDARY", 32000, 350, 2, "#ffbd24", "croc"),
+    Brainrot("La Vacca Saturno", "MYTHICAL", 175000, 1000, 2, "#e04dff", "planet"),
+    Brainrot("Chimpanzini Bananini", "MYTHICAL", 320000, 1500, 3, "#bd48ff", "banana"),
+    Brainrot("Bananita Dolphinita", "MYTHICAL", 560000, 2400, 3, "#ff59d6", "dolphin"),
+    Brainrot("Frigo Camelo", "CELESTIAL", 1100000, 3200, 4, "#22eaff", "fridge"),
+    Brainrot("Penguino Cocosino", "CELESTIAL", 1800000, 4500, 4, "#38aaff", "penguin"),
+    Brainrot("Dragon Cannelloni", "DIVINE", 3600000, 6500, 5, "#ff5533", "dragon"),
+    Brainrot("Cactus Hipopotamo", "DIVINE", 6500000, 8500, 5, "#ff8b22", "cactus"),
+    Brainrot("Neon Capybara", "SECRET", 13000000, 11000, 6, "#70ff37", "capybara"),
+    Brainrot("Disco Axolotlo", "SECRET", 21000000, 14000, 6, "#00ffae", "axolotl"),
+    Brainrot("Il Re del Brainrot", "TRANSCENDENT", 45000000, 18000, 7, "#fff06a", "king"),
+    Brainrot("Serafino Galattico", "TRANSCENDENT", 80000000, 24000, 7, "#fff5cf", "angel"),
 )
 LOCATIONS = (("Meme louka", 0), ("Brainrot city", 3500), ("Kosmické impérium", 65000),
              ("Banánová džungle", 650000), ("Ledové království", 3500000),
@@ -47,6 +47,18 @@ ACHIEVEMENTS = (
     ("Za hranice dvorku", "Odemkni druhou lokaci."),
     ("Nový začátek", "Proveď první prestige."),
     ("Celá parta", "Vlastni každý druh Brainrota."),
+    ("První přístavba", "Rozšiř pozemek alespoň jednou."),
+    ("Velkostatek", "Kup všech šest rozšíření pozemku."),
+    ("Trenér", "Vylepši některého Brainrota na level 10."),
+    ("Dokonalý Brainrot", "Dosáhni s některým kusem levelu 100."),
+    ("Lovec legend", "Objev legendárního Brainrota."),
+    ("Tajná sbírka", "Objev oba SECRET Brainroty."),
+    ("Atlas hotový", "Objev všech 16 druhů napříč érami."),
+    ("Za nebeskou branou", "Odemkni poslední lokaci."),
+    ("Stroj na peníze", "Dosáhni produkce 100 000 Coins/s."),
+    ("Miliardář", "Vydělej celkem miliardu Coins."),
+    ("Zkušený restart", "Proveď tři prestige."),
+    ("Věčný koloběh", "Proveď pět prestige."),
 )
 OFFLINE_LIMIT = 8 * 60 * 60
 PRESTIGE_COST = 1_000_000
@@ -75,6 +87,7 @@ class GameState:
     plot_level: int = 0
     base_slots: int = BASE_SLOTS
     discovered: list = field(default_factory=list)
+    records: list = field(default_factory=list)
 
     @property
     def capacity(self):
@@ -93,6 +106,7 @@ class GameState:
             return False
         self.coins -= self.expansion_price
         self.plot_level += 1
+        self.check_achievements()
         return True
 
     def sell_price(self, index, unit):
@@ -178,6 +192,7 @@ class GameState:
             return False
         self.coins -= price
         self.levels[index][unit] += 1
+        self.check_achievements()
         return True
 
     def unlock(self):
@@ -204,6 +219,13 @@ class GameState:
         reward = self.prestige_reward
         if not reward:
             return False
+        entries = self.records + [self.run_record()]
+        # Keep the top five for each board, at most fifteen distinct eras.
+        best = {}
+        for metric in ("earned", "income", "collection"):
+            for entry in sorted(entries, key=lambda row: (-row[metric], row["era"]))[:5]:
+                best[entry["era"]] = entry
+        self.records = list(best.values())
         self.prestige += reward
         self.coins = 100
         self.run_earned = 0
@@ -214,9 +236,26 @@ class GameState:
         self.check_achievements()
         return True
 
+    def run_record(self):
+        return dict(era=self.prestige + 1, earned=self.run_earned,
+                    income=min(MAX_VALUE, self.income), collection=sum(self.owned))
+
+    def leaderboard(self, metric):
+        if metric not in ("earned", "income", "collection"):
+            raise ValueError("Unknown leaderboard")
+        return sorted(self.records + [self.run_record()],
+                      key=lambda row: (-row[metric], row["era"]))[:5]
+
     def check_achievements(self):
+        max_level = max((max(units, default=0) for units in self.levels), default=0)
         conditions = (sum(self.owned) >= 1, sum(self.owned) >= 10, self.earned >= 1e6,
-                      self.location >= 1, self.prestige >= 1, all(self.owned))
+                      self.location >= 1, self.prestige >= 1, all(self.owned),
+                      self.plot_level >= 1, self.plot_level >= MAX_PLOT_LEVEL,
+                      max_level >= 10, max_level >= 100, 4 in self.discovered,
+                      12 in self.discovered and 13 in self.discovered,
+                      len(set(self.discovered)) == len(BRAINROTS),
+                      self.location == len(LOCATIONS)-1, self.income >= 100_000,
+                      self.earned >= 1e9, self.prestige >= 3, self.prestige >= 5)
         for index, condition in enumerate(conditions):
             if condition and index not in self.achievements:
                 self.achievements.append(index)
@@ -224,7 +263,7 @@ class GameState:
     def save(self, path=None, now=None):
         path = Path(path) if path is not None else save_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        data = dict(vars(self), version=4, saved_at=time.time() if now is None else now)
+        data = dict(vars(self), version=5, saved_at=time.time() if now is None else now)
         temporary = path.with_suffix(".tmp")
         temporary.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         temporary.replace(path)
@@ -235,7 +274,7 @@ class GameState:
         if not path.exists():
             return cls(), 0.0
         data = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3, 4):
+        if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3, 4, 5):
             raise ValueError("Neznámý formát uložené hry.")
         def number(key, maximum=MAX_VALUE, integer=False):
             value = data[key]
@@ -277,6 +316,19 @@ class GameState:
             raise ValueError("Neplatné objevené druhy.")
         state.discovered = sorted(set(discovered) | {i for i, amount in enumerate(owned) if amount})
         state.cargo = cargo
+        records = data.get("records", []) if data["version"] >= 5 else []
+        if not isinstance(records, list) or len(records) > 15:
+            raise ValueError("Neplatné rekordy.")
+        for row in records:
+            if (not isinstance(row, dict) or set(row) != {"era", "earned", "income", "collection"}
+                    or type(row["era"]) is not int or not 1 <= row["era"] <= prestige
+                    or type(row["collection"]) is not int or not 0 <= row["collection"] <= MAX_VALUE
+                    or any(type(row[k]) not in (int, float) or not math.isfinite(row[k])
+                           or not 0 <= row[k] <= MAX_VALUE for k in ("earned", "income"))):
+                raise ValueError("Neplatný záznam žebříčku.")
+        if len({row["era"] for row in records}) != len(records):
+            raise ValueError("Duplicitní éra v žebříčku.")
+        state.records = records
         if data["version"] < 3:
             state.base_slots = max(BASE_SLOTS,math.ceil(state.used_slots/SLOTS_PER_EXPANSION)*SLOTS_PER_EXPANSION)
         else:

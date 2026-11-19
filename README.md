@@ -52,6 +52,12 @@ Oblasti mají vlastní palety, stavby a vegetaci, vodu nebo lávu, dlážděné 
 
 ## Ukládání a testy
 
+Vyšší rarity mají výraznější palety: LEGENDARY zlatou, MYTHICAL fialovou a růžovou, CELESTIAL azurovou a modrou, DIVINE ohnivou, SECRET neonově zelenou a TRANSCENDENT zářivou zlatou a krémovou. Barvy se zobrazují na postavách i v inventáři.
+
+Záložka **Úspěchy** obsahuje 18 achievementů na třech stránkách. Nové cíle zahrnují rozšiřování pozemku, levely 10 a 100, vzácné úlovky, objevení všech druhů, poslední lokaci, produkci 100 000 Coins/s, miliardu celkového výdělku a opakované prestige. Splněné achievementy zůstávají po prestige.
+
+Záložka **Žebříčky** nabízí tři místní TOP 5: výdělek éry, produkci při prestige a počet vlastněných kusů při prestige. Aktuální éra se porovnává živě; dokončená se zapíše před resetem. Produkce a sbírka jsou stav při prestige, nikoli historická maxima během éry. Rekordy se uchovávají v savu i po prestige. Žebříčky porovnávají tvoje vlastní éry, nejsou online ani multiplayerové; starší savy začnou zaznamenávat dokončené éry od této aktualizace.
+
 **Ctrl+S** uloží postup; hra také ukládá každých 15 sekund a při zavření okna. Na Windows je save v `%LOCALAPPDATA%\BrainrotBorough\save.json`, jinde v `~/.local/share/BrainrotBorough/save.json`. Offline výdělek je omezený na 8 hodin. Vlastní soubor lze zadat pomocí `--save moje-hra.json`.
 
 Po spuštění se objevíš na vlastním pozemku. Nesený úlovek se ukládá také a po návratu se automaticky odevzdá. Starší uložené hry se automaticky převedou: zachovají se Coins, lokace, počet Brainrotů i jejich dosavadní levely. Pokud měl druh společný level 3, každý jeho vlastněný kus dostane level 3 a dál se vylepšuje samostatně. Sbírky z verze s neomezeným inventářem dostanou zdarma dostatečnou základní kapacitu, zaokrouhlenou na násobek osmi včetně neseného úlovku. Nic se nemaže; zakoupená rozšíření tuto kapacitu dále navyšují. Nečitelný save se nepřepisuje; hra zobrazí upozornění a vypne ukládání. Pro nový začátek přesuň save při vypnuté hře. Používej jednu instanci hry na jeden save.

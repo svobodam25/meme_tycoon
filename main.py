@@ -52,6 +52,7 @@ class Game:
             self.notice = "Uloženou hru nelze načíst. Hraješ bez ukládání; původní soubor zůstává zachován."
         self.tab = "Inventář"
         self.inventory = Inventory()
+        self.achievement_page = 0
         self.sprite_cache = {}
         self.location = self.state.location
         self.buttons = []
@@ -218,14 +219,37 @@ class Game:
     def milestones(self):
         self.text("Každé impérium má svůj příběh.",587,181,24,INK,True)
         self.text(f"Splněno {len(self.state.achievements)} / {len(ACHIEVEMENTS)}",587,219,16,LIME)
-        for i,(title,detail) in enumerate(ACHIEVEMENTS):
-            y = 257+i*80
+        pages = math.ceil(len(ACHIEVEMENTS)/6)
+        self.achievement_page = max(0, min(pages-1, self.achievement_page))
+        self.button("<",(1010,208,42,32),lambda:setattr(self,"achievement_page",self.achievement_page-1),self.achievement_page>0)
+        self.text(f"{self.achievement_page+1}/{pages}",1073,213,16,MUTED)
+        self.button(">",(1132,208,42,32),lambda:setattr(self,"achievement_page",self.achievement_page+1),self.achievement_page<pages-1)
+        first = self.achievement_page*6
+        for i in range(first, min(first+6,len(ACHIEVEMENTS))):
+            title, detail = ACHIEVEMENTS[i]
+            y = 257+(i-first)*80
             done = i in self.state.achievements
             self.box((580,y,672,69))
             self.box((598,y+17,36,36),LIME if done else "#344256",10)
             self.text("+" if done else "?",616,y+34,24,"#26332c" if done else MUTED,True,True)
             self.text(title,651,y+10,20,INK,True)
             self.text(detail,651,y+38,15,MUTED)
+
+    def leaderboards(self):
+        self.text("MÍSTNÍ ŽEBŘÍČKY · TVOJE ÉRY",28,181,28,INK,True)
+        self.text("Dokončené éry se zapíšou při prestige. Aktuální éra se porovnává živě.",28,224,18,MUTED)
+        for col,(metric,title,suffix) in enumerate((("earned","VÝDĚLEK ÉRY"," Coins"),
+                                                   ("income","PRODUKCE PŘI PRESTIGE"," / s"),
+                                                   ("collection","SBÍRKA PŘI PRESTIGE"," kusů"))):
+            x = 28+col*414
+            self.box((x,277,396,434))
+            self.text(title,x+18,298,17,LIME,True)
+            for rank,row in enumerate(self.state.leaderboard(metric),1):
+                y = 352+(rank-1)*68
+                active = row["era"] == self.state.prestige+1
+                self.text(f"#{rank}  Éra {row['era']}"+(" · nyní" if active else ""),x+18,y,18,INK,True)
+                self.text(compact(row[metric])+suffix,x+18,y+27,18,LIME if active else MUTED)
+        self.text("Rekordy zůstávají po prestige. Žebříčky porovnávají tvé vlastní éry na tomto zařízení.",28,741,17,MUTED)
 
     def prestige_panel(self):
         s = self.state
@@ -277,13 +301,15 @@ class Game:
             self.button("<",(28,115,44,40),lambda:setattr(self,"location",self.location-1),self.location>0)
             self.text(f"{self.location+1:02} / {len(LOCATIONS)} · {LOCATIONS[self.location][0]}",291,135,18,INK,True,True)
             self.button(">",(510,115,44,40),lambda:setattr(self,"location",self.location+1),self.location<self.state.location)
-        for i,tab in enumerate(("Inventář","Obchod","Úspěchy","Prestige")):
-            self.button(tab,(580+i*120,115,112,40),lambda tab=tab:setattr(self,"tab",tab),True,self.tab==tab)
+        for i,tab in enumerate(("Inventář","Obchod","Úspěchy","Prestige","Žebříčky")):
+            self.button(tab,(580+i*96,115,90,40),lambda tab=tab:setattr(self,"tab",tab),True,self.tab==tab)
         self.button("Zpět na mapu",(1070,115,182,40),self.close_menu)
         if self.tab == "Inventář":
             self.inventory.draw(self)
         elif self.tab == "Obchod":
             self.shop()
+        elif self.tab == "Žebříčky":
+            self.leaderboards()
         else:
             self.scene()
             {"Úspěchy":self.milestones,"Prestige":self.prestige_panel}[self.tab]()

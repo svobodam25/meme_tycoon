@@ -14,6 +14,28 @@ from game_state import LOCATIONS
 
 
 class InterfaceTests(unittest.TestCase):
+    def test_achievement_pages_leaderboards_and_new_colors_render(self):
+        with tempfile.TemporaryDirectory() as directory:
+            game = Game(Path(directory)/'save.json', smoke=True)
+            try:
+                game.view = 'menu'
+                game.tab = 'Úspěchy'
+                for page in range(3):
+                    game.achievement_page = page
+                    game.draw()
+                    self.assertEqual(game.achievement_page, page)
+                game.state.gain(1_000_000)
+                game.ascend()
+                game.view = 'menu'
+                game.tab = 'Žebříčky'
+                game.draw()
+                self.assertEqual(game.state.leaderboard('earned')[0]['era'], 1)
+                from game_state import BRAINROTS
+                for b in BRAINROTS:
+                    game.character(600, 400, b.shape, b.color)
+            finally:
+                pygame.quit()
+
     def test_shop_purchase_button(self):
         with tempfile.TemporaryDirectory() as directory:
             game = Game(Path(directory)/"save.json", smoke=True)

@@ -125,8 +125,8 @@ def render_character(kind, color, size):
     elif kind=="croc":
         poly("#758c6c",[(-16,-14),(-3,-60),(13,-58),(18,-9),(66,34),(5,23),(-52,37)])
         poly("#b7c69d",[(-8,-9),(61,30),(8,15),(-48,31)])
-        ellipse("#71966b",(-61,-24,117,57))
-        poly("#8eae74",[(-66,-7),(-52,-31),(33,-24),(68,-6),(66,16),(-53,20)])
+        ellipse(color,(-61,-24,117,57))
+        poly(pygame.Color(color).lerp("white",.22),[(-66,-7),(-52,-31),(33,-24),(68,-6),(66,16),(-53,20)])
         eye(22,-26,9); eye(42,-23,8)
         line("#3d634d",(-44,7),(62,5),3)
         for x in range(-34,55,13):
@@ -136,8 +136,8 @@ def render_character(kind, color, size):
         line(OUTLINE,(-67,-22),(-67,30),4); ellipse("#d7c799",(-74,-4,14,13))
         ellipse("#263542",(-30,28,16,17)); ellipse("#263542",(27,27,16,17))
     elif kind=="planet":
-        ellipse("#ae8cd0",(-42,-44,84,88))
-        ellipse("#efe5fa",(-35,-42,64,76),False)
+        ellipse(color,(-42,-44,84,88))
+        ellipse(pygame.Color(color).lerp("white",.4),(-35,-42,64,76),False)
         for x,y,w,h in ((-29,-33,21,27),(10,-9,22,28),(-15,20,23,16)):
             ellipse("#8368ad",(x,y,w,h),False)
         for side in (-1,1):
@@ -176,7 +176,7 @@ def render_character(kind, color, size):
     elif kind=="fridge":
         for x in (-29,-9,13,32):
             line("#be9974",(x,24),(x,49),6); ellipse("#785e49",(x-6,46,15,9))
-        rect("#e6eef0",(-38,-29,72,59),7)
+        rect(color,(-38,-29,72,59),7)
         line("#7fa4b6",(-35,-7),(31,-7),2)
         line("#8c9eae",(21,3),(21,18),3)
         poly("#d5b793",[(22,-19),(29,-56),(42,-59),(47,-8),(33,10)])
@@ -189,10 +189,10 @@ def render_character(kind, color, size):
         line("#e6f6f7",(-24,5),(-7,5),2)
     elif kind=="penguin":
         for x in (-21,16): ellipse("#e5ad55",(x-13,45,29,13))
-        ellipse("#293b50",(-34,-54,68,105))
+        ellipse(color,(-34,-54,68,105))
         ellipse("#eee6cf",(-25,-26,50,72),False)
         for side in (-1,1):
-            poly("#334b5d",[(side*26,-13),(side*52,26),(side*29,20)])
+            poly(pygame.Color(color).lerp("black",.25),[(side*26,-13),(side*52,26),(side*29,20)])
         eye(-12,-28,8); eye(12,-28,8)
         poly("#f2b655",[(-10,-11),(11,-11),(0,2)])
         ellipse("#805d42",(-30,10,60,33))

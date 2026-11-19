@@ -12,6 +12,45 @@ def catch(state, index):
 
 
 class EconomyTests(unittest.TestCase):
+    def test_new_achievements_unlock_and_survive_prestige(self):
+        s = GameState(coins=1e12, location=7)
+        self.assertTrue(s.expand_plot())
+        self.assertIn(6, s.achievements)
+        catch(s, 4)
+        self.assertIn(10, s.achievements)
+        catch(s, 12)
+        catch(s, 13)
+        self.assertIn(11, s.achievements)
+        s.levels[4][0] = 9
+        self.assertTrue(s.upgrade(4))
+        self.assertIn(8, s.achievements)
+        s.run_earned = s.prestige_price
+        before = set(s.achievements)
+        s.ascend()
+        self.assertTrue(before <= set(s.achievements))
+
+    def test_leaderboards_rank_save_and_validate_completed_eras(self):
+        s = GameState()
+        for era in range(1, 9):
+            catch(s, 0)
+            s.levels[0][0] = era
+            s.run_earned = s.prestige_price
+            self.assertTrue(s.ascend())
+        self.assertLessEqual(len(s.records), 15)
+        self.assertEqual(s.leaderboard('income')[0]['era'], 8)
+        self.assertEqual(s.leaderboard('collection')[0]['era'], 1)
+        self.assertEqual(len(s.leaderboard('earned')), 5)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/'save.json'
+            s.save(path, now=1000)
+            loaded, _ = GameState.load(path, now=1000)
+            self.assertEqual(loaded.records, s.records)
+            data = json.loads(path.read_text())
+            data['records'][0]['income'] = -1
+            path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):
+                GameState.load(path, now=1000)
+
     def test_shop_discovery_cost_capacity_and_level(self):
         s = GameState(coins=10_000)
         self.assertFalse(s.buy(0))
@@ -130,7 +169,7 @@ class EconomyTests(unittest.TestCase):
             GameState().save(path)
             data = json.loads(path.read_text())
             for key, value in (("coins", float("nan")), ("owned", [-1]*6), ("levels", [1]),
-                               ("location", 9), ("achievements", [False]), ("version", 5)):
+                               ("location", 9), ("achievements", [False]), ("version", 6)):
                 broken = dict(data)
                 broken[key] = value
                 path.write_text(json.dumps(broken))
