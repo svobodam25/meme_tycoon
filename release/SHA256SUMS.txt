@@ -1,0 +1,2 @@
+0dd497dbeb5ba03f2d5df530b716a9d3e48967ddef3ba84681189ff02863b2a7  MemeTycoon.exe
+916b0c9cd3be4ca21c3897d216df6eecfa36546fd1c62df5a8cdd4a2cc6984dd  MemeTycoon-windows-x64.zip
