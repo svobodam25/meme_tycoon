@@ -4,6 +4,17 @@
 
 ## Spuštění hry Meme Tycoon
 
+Hotový Windows release je v `dist/MemeTycoon.exe`. Spustíš ho dvojklikem bez instalace Pythonu. Pro předání hry použij `dist/MemeTycoon-windows-x64.zip`, který obsahuje EXE, tento návod a licenci. ZIP nejprve rozbal. Uložené hry zůstávají v uživatelské složce popsané níže; do releasu se osobní save nepřibaluje.
+
+Release lze znovu sestavit na 64bitových Windows po instalaci závislostí:
+
+```powershell
+.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.venv\Scripts\python.exe build_release.py
+```
+
+Sestavení spustí testy, vytvoří samostatné EXE bez konzolového okna, ověří jeho spuštění a vykreslení v dočasné složce a připraví ZIP i kontrolní součty SHA-256. Pro běžné hraní ani spuštění hotového EXE nejsou build nástroje potřeba.
+
 Implementace používá Python 3.10+ a Pygame. Spuštění v PowerShellu:
 
 ```powershell
