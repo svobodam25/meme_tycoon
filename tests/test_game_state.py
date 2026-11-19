@@ -12,6 +12,62 @@ def catch(state, index):
 
 
 class EconomyTests(unittest.TestCase):
+    def test_shop_discovery_cost_capacity_and_level(self):
+        s = GameState(coins=10_000)
+        self.assertFalse(s.buy(0))
+        self.assertFalse(s.buy(-1))
+        self.assertFalse(s.buy(len(BRAINROTS)))
+        self.assertTrue(s.capture(0))
+        self.assertFalse(s.buy(0))
+        s.deposit()
+        s.sell(0, 0)
+        price = s.purchase_price(0)
+        self.assertEqual(price, 100)
+        s.coins = price - 1
+        self.assertFalse(s.buy(0))
+        s.coins = price
+        self.assertTrue(s.buy(0))
+        self.assertEqual((s.coins, s.levels[0]), (0, [1]))
+        s.coins = 100_000
+        for _ in range(s.capacity - 2):
+            catch(s, 0)
+        s.capture(1)
+        self.assertFalse(s.buy(0))
+
+    def test_prestige_doubles_income_and_quadruples_requirement(self):
+        s = GameState()
+        for level in range(5):
+            self.assertEqual(s.prestige_price, 1_000_000 * 4**level)
+            self.assertEqual(s.multiplier, 2**level)
+            s.run_earned = s.prestige_price - 1
+            self.assertFalse(s.ascend())
+            s.run_earned += 1
+            self.assertTrue(s.ascend())
+            self.assertEqual(s.prestige, level + 1)
+
+    def test_discovery_survives_save_sale_and_prestige(self):
+        s = GameState(location=1)
+        catch(s, 2)
+        s.sell(2, 0)
+        s.run_earned = s.prestige_price
+        s.ascend()
+        self.assertIn(2, s.discovered)
+        s.coins = 100_000
+        self.assertFalse(s.buy(2))
+        s.unlock()
+        self.assertTrue(s.buy(2))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/"save.json"
+            s.save(path, now=1000)
+            loaded, _ = GameState.load(path, now=1000)
+            self.assertEqual(loaded.discovered, [2])
+            data = json.loads(path.read_text())
+            data.update(version=3)
+            del data['discovered']
+            path.write_text(json.dumps(data))
+            loaded, _ = GameState.load(path, now=1000)
+            self.assertEqual(loaded.discovered, [2])
+
     def test_capture_income_and_individual_upgrade(self):
         s = GameState()
         catch(s, 0)
@@ -21,13 +77,13 @@ class EconomyTests(unittest.TestCase):
         self.assertEqual(s.tick(10), 20)
         self.assertTrue(s.upgrade(0, 1))
         self.assertEqual(s.levels[0], [1, 2])
-        self.assertEqual(s.income, 3)
+        self.assertAlmostEqual(s.income, 3)
         self.assertEqual(s.coins, 45)
         self.assertFalse(s.upgrade(0, 1))
         self.assertFalse(s.upgrade(0, 2))
         catch(s,0)
         self.assertEqual(s.levels[0], [1,2,1])
-        self.assertFalse(hasattr(s,"buy"))
+        self.assertTrue(hasattr(s,"buy"))
         self.assertIn(0, s.achievements)
 
     def test_locked_character_and_location_cost(self):
@@ -45,14 +101,14 @@ class EconomyTests(unittest.TestCase):
         s.gain(4_000_000)
         catch(s, 0)
         s.unlock()
-        self.assertEqual(s.prestige_reward, 2)
+        self.assertEqual(s.prestige_reward, 1)
         self.assertTrue(s.ascend())
         self.assertEqual((s.coins, s.run_earned, s.location), (100, 0, 0))
         self.assertEqual(sum(s.owned), 0)
         self.assertEqual(s.earned, 4_000_000)
         self.assertIn(4, s.achievements)
         catch(s, 0)
-        self.assertEqual(s.income, 1.5)
+        self.assertEqual(s.income, 2)
 
     def test_save_round_trip_and_capped_offline_income(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -74,7 +130,7 @@ class EconomyTests(unittest.TestCase):
             GameState().save(path)
             data = json.loads(path.read_text())
             for key, value in (("coins", float("nan")), ("owned", [-1]*6), ("levels", [1]),
-                               ("location", 9), ("achievements", [False]), ("version", 4)):
+                               ("location", 9), ("achievements", [False]), ("version", 5)):
                 broken = dict(data)
                 broken[key] = value
                 path.write_text(json.dumps(broken))

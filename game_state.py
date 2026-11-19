@@ -12,7 +12,7 @@ class Brainrot:
     name: str
     rarity: str
     cost: int
-    production: int
+    production: float
     location: int
     color: str
     shape: str
@@ -21,20 +21,20 @@ class Brainrot:
 BRAINROTS = (
     Brainrot("Tung Tung Tung Sahur", "COMMON", 25, 1, 0, "#d7ad80", "log"),
     Brainrot("Tralalero Tralala", "RARE", 180, 7, 0, "#75c5f0", "shark"),
-    Brainrot("Brr Brr Patapim", "EPIC", 1200, 38, 1, "#98cb80", "tree"),
-    Brainrot("Ballerina Cappuccina", "EPIC", 6500, 170, 1, "#f4a9cf", "cup"),
-    Brainrot("Bombardiro Crocodilo", "LEGENDARY", 32000, 760, 2, "#e4c165", "croc"),
-    Brainrot("La Vacca Saturno", "MYTHICAL", 175000, 3400, 2, "#c0a2f1", "planet"),
-    Brainrot("Chimpanzini Bananini", "MYTHICAL", 320000, 8500, 3, "#edd067", "banana"),
-    Brainrot("Bananita Dolphinita", "MYTHICAL", 560000, 14000, 3, "#77dccc", "dolphin"),
-    Brainrot("Frigo Camelo", "CELESTIAL", 1100000, 29000, 4, "#acdff2", "fridge"),
-    Brainrot("Penguino Cocosino", "CELESTIAL", 1800000, 45000, 4, "#d3edf7", "penguin"),
-    Brainrot("Dragon Cannelloni", "DIVINE", 3600000, 95000, 5, "#f79869", "dragon"),
-    Brainrot("Cactus Hipopotamo", "DIVINE", 6500000, 160000, 5, "#a4d87c", "cactus"),
-    Brainrot("Neon Capybara", "SECRET", 13000000, 340000, 6, "#f29fe2", "capybara"),
-    Brainrot("Disco Axolotlo", "SECRET", 21000000, 520000, 6, "#a89df3", "axolotl"),
-    Brainrot("Il Re del Brainrot", "TRANSCENDENT", 45000000, 1100000, 7, "#f6d379", "king"),
-    Brainrot("Serafino Galattico", "TRANSCENDENT", 80000000, 1900000, 7, "#e6ddff", "angel"),
+    Brainrot("Brr Brr Patapim", "EPIC", 1200, 30, 1, "#98cb80", "tree"),
+    Brainrot("Ballerina Cappuccina", "EPIC", 6500, 120, 1, "#f4a9cf", "cup"),
+    Brainrot("Bombardiro Crocodilo", "LEGENDARY", 32000, 350, 2, "#e4c165", "croc"),
+    Brainrot("La Vacca Saturno", "MYTHICAL", 175000, 1000, 2, "#c0a2f1", "planet"),
+    Brainrot("Chimpanzini Bananini", "MYTHICAL", 320000, 1500, 3, "#edd067", "banana"),
+    Brainrot("Bananita Dolphinita", "MYTHICAL", 560000, 2400, 3, "#77dccc", "dolphin"),
+    Brainrot("Frigo Camelo", "CELESTIAL", 1100000, 3200, 4, "#acdff2", "fridge"),
+    Brainrot("Penguino Cocosino", "CELESTIAL", 1800000, 4500, 4, "#d3edf7", "penguin"),
+    Brainrot("Dragon Cannelloni", "DIVINE", 3600000, 6500, 5, "#f79869", "dragon"),
+    Brainrot("Cactus Hipopotamo", "DIVINE", 6500000, 8500, 5, "#a4d87c", "cactus"),
+    Brainrot("Neon Capybara", "SECRET", 13000000, 11000, 6, "#f29fe2", "capybara"),
+    Brainrot("Disco Axolotlo", "SECRET", 21000000, 14000, 6, "#a89df3", "axolotl"),
+    Brainrot("Il Re del Brainrot", "TRANSCENDENT", 45000000, 18000, 7, "#f6d379", "king"),
+    Brainrot("Serafino Galattico", "TRANSCENDENT", 80000000, 24000, 7, "#e6ddff", "angel"),
 )
 LOCATIONS = (("Meme louka", 0), ("Brainrot city", 3500), ("Kosmické impérium", 65000),
              ("Banánová džungle", 650000), ("Ledové království", 3500000),
@@ -74,6 +74,7 @@ class GameState:
     cargo: int | None = None
     plot_level: int = 0
     base_slots: int = BASE_SLOTS
+    discovered: list = field(default_factory=list)
 
     @property
     def capacity(self):
@@ -118,6 +119,8 @@ class GameState:
     def deposit(self):
         if self.cargo is None:
             return False
+        if self.cargo not in self.discovered:
+            self.discovered.append(self.cargo)
         self.owned[self.cargo] += 1
         self.levels[self.cargo].append(1)
         self.cargo = None
@@ -126,7 +129,25 @@ class GameState:
 
     @property
     def multiplier(self):
-        return 1 + self.prestige * 0.25
+        return min(MAX_VALUE, 2 ** min(self.prestige, 333))
+
+    def purchase_price(self, index):
+        return BRAINROTS[index].cost * 4
+
+    def can_buy(self, index):
+        return (0 <= index < len(BRAINROTS) and index in self.discovered
+                and BRAINROTS[index].location <= self.location
+                and self.used_slots < self.capacity
+                and self.coins >= self.purchase_price(index))
+
+    def buy(self, index):
+        if not self.can_buy(index):
+            return False
+        self.coins -= self.purchase_price(index)
+        self.owned[index] += 1
+        self.levels[index].append(1)
+        self.check_achievements()
+        return True
 
     def production(self, index):
         return BRAINROTS[index].production * sum(self.levels[index]) * self.multiplier
@@ -171,8 +192,13 @@ class GameState:
         return True
 
     @property
+    def prestige_price(self):
+        # Beyond this exponent the requirement already exceeds MAX_VALUE.
+        return PRESTIGE_COST * 4 ** min(self.prestige, 167)
+
+    @property
     def prestige_reward(self):
-        return math.isqrt(int(self.run_earned / PRESTIGE_COST))
+        return int(self.run_earned >= self.prestige_price)
 
     def ascend(self):
         reward = self.prestige_reward
@@ -198,7 +224,7 @@ class GameState:
     def save(self, path=None, now=None):
         path = Path(path) if path is not None else save_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        data = dict(vars(self), version=3, saved_at=time.time() if now is None else now)
+        data = dict(vars(self), version=4, saved_at=time.time() if now is None else now)
         temporary = path.with_suffix(".tmp")
         temporary.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         temporary.replace(path)
@@ -209,7 +235,7 @@ class GameState:
         if not path.exists():
             return cls(), 0.0
         data = json.loads(path.read_text(encoding="utf-8"))
-        if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3):
+        if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3, 4):
             raise ValueError("Neznámý formát uložené hry.")
         def number(key, maximum=MAX_VALUE, integer=False):
             value = data[key]
@@ -245,6 +271,11 @@ class GameState:
         if cargo is not None and (type(cargo) is not int or not 0 <= cargo < len(BRAINROTS)
                                   or BRAINROTS[cargo].location > location):
             raise ValueError("Neplatný nesený Brainrot.")
+        discovered = data.get("discovered", []) if data["version"] >= 4 else []
+        if not isinstance(discovered, list) or any(
+                type(v) is not int or not 0 <= v < len(BRAINROTS) for v in discovered):
+            raise ValueError("Neplatné objevené druhy.")
+        state.discovered = sorted(set(discovered) | {i for i, amount in enumerate(owned) if amount})
         state.cargo = cargo
         if data["version"] < 3:
             state.base_slots = max(BASE_SLOTS,math.ceil(state.used_slots/SLOTS_PER_EXPANSION)*SLOTS_PER_EXPANSION)

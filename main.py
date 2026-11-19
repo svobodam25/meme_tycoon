@@ -8,7 +8,7 @@ import time
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 import pygame
 
-from game_state import ACHIEVEMENTS, BRAINROTS, LOCATIONS, PRESTIGE_COST, GameState, save_path
+from game_state import ACHIEVEMENTS, BRAINROTS, LOCATIONS, GameState, save_path
 from world import World, THEMES
 from inventory import Inventory
 from sprites import render_character
@@ -106,6 +106,30 @@ class Game:
         except OSError:
             self.notify("Uložení se nezdařilo. Zkontroluj volné místo a oprávnění ke složce.")
             return False
+
+    def buy(self, index):
+        if self.state.buy(index):
+            self.save()
+            self.notify(f"Koupen {BRAINROTS[index].name}. Chytání v přírodě je zdarma!")
+
+    def shop(self):
+        s = self.state
+        self.text("OBCHOD · ZÍSKANÉ DRUHY",28,177,26,INK,True)
+        self.text(f"Nákup stojí 4× základní hodnotu · Chytání je zdarma · Sloty {s.used_slots}/{s.capacity}",28,214,17,MUTED)
+        for index, b in enumerate(BRAINROTS):
+            x, y = 28 + (index % 4)*310, 250 + (index // 4)*124
+            self.box((x,y,294,112))
+            known = index in s.discovered
+            self.inventory.name(self,b.name if known else "Neobjevený druh",x+12,y+8,270,16)
+            if not known:
+                label = "Nejdřív chyť a dones domů"
+            elif b.location > s.location:
+                label = "Odemkni původní lokaci"
+            elif s.used_slots >= s.capacity:
+                label = "Plný pozemek"
+            else:
+                label = f"Koupit · {compact(s.purchase_price(index))} Coins"
+            self.button(label,(x+12,y+62,270,38),lambda i=index:self.buy(i),s.can_buy(index),True)
 
     def upgrade(self, index, unit):
         if self.state.upgrade(index, unit):
@@ -211,13 +235,13 @@ class Game:
         self.text("Prestige vymění postup za trvalý bonus k produkci.",616,309,18,MUTED)
         self.text("Resetuje Coins, postavičky, levely a lokace.",616,344,18,MUTED)
         self.text("Úspěchy, celkový výdělek i pozemek ti zůstávají.",616,376,18,MUTED)
-        self.text(f"Trvalý bonus: +{s.prestige*25} %",616,436,25,LIME,True)
-        self.text(f"Výdělek v této éře: {compact(s.run_earned)} / {compact(PRESTIGE_COST)}",616,483,18)
-        progress = min(1,s.run_earned/PRESTIGE_COST)
+        self.text(f"Násobitel produkce: {compact(s.multiplier)}×",616,436,25,LIME,True)
+        self.text(f"Výdělek v této éře: {compact(s.run_earned)} / {compact(s.prestige_price)}",616,483,18)
+        progress = min(1,s.run_earned/s.prestige_price)
         self.box((616,523,592,12),"#344256",6)
         if progress:
             self.box((616,523,max(12,int(592*progress)),12),LIME,6)
-        self.text(f"Získáš {s.prestige_reward} bodů · každý přidá +25 %",616,558,18,MUTED)
+        self.text("Každé prestige: produkce 2× · další požadavek 4×",616,558,18,MUTED)
         self.button("Provést prestige",(616,623,592,54),lambda:setattr(self,"modal",True),s.prestige_reward>0,True)
 
     def ascend(self):
@@ -243,7 +267,7 @@ class Game:
         self.text("BRAINROT",87,25,27,INK,True)
         self.text("B O R O U G H",88,58,13,MUTED,True)
         self.text("Z malého dvorku do celého vesmíru.",293,44,17,MUTED)
-        for x,label,value,color in ((716,"COINS",compact(self.state.coins),LIME),(923,"ZA SEKUNDU",compact(self.state.income),INK),(1110,"PRESTIGE",f"+{self.state.prestige*25}%","#c0a2f1")):
+        for x,label,value,color in ((716,"COINS",compact(self.state.coins),LIME),(923,"ZA SEKUNDU",compact(self.state.income),INK),(1110,"PRESTIGE",f"{compact(self.state.multiplier)}×","#c0a2f1")):
             self.text(label,x,24,12,MUTED,True)
             self.text(value,x,47,29,color,True)
         pygame.draw.line(self.surface,"#2b3543",(28,94),(1252,94))
@@ -253,11 +277,13 @@ class Game:
             self.button("<",(28,115,44,40),lambda:setattr(self,"location",self.location-1),self.location>0)
             self.text(f"{self.location+1:02} / {len(LOCATIONS)} · {LOCATIONS[self.location][0]}",291,135,18,INK,True,True)
             self.button(">",(510,115,44,40),lambda:setattr(self,"location",self.location+1),self.location<self.state.location)
-        for i,tab in enumerate(("Inventář","Úspěchy","Prestige")):
-            self.button(tab,(580+i*163,115,151,40),lambda tab=tab:setattr(self,"tab",tab),True,self.tab==tab)
+        for i,tab in enumerate(("Inventář","Obchod","Úspěchy","Prestige")):
+            self.button(tab,(580+i*120,115,112,40),lambda tab=tab:setattr(self,"tab",tab),True,self.tab==tab)
         self.button("Zpět na mapu",(1070,115,182,40),self.close_menu)
         if self.tab == "Inventář":
             self.inventory.draw(self)
+        elif self.tab == "Obchod":
+            self.shop()
         else:
             self.scene()
             {"Úspěchy":self.milestones,"Prestige":self.prestige_panel}[self.tab]()
@@ -284,7 +310,7 @@ class Game:
             else:
                 self.text("Připraven na novou éru?",370,299,28,INK,True)
                 self.text("Coins, postavičky, levely a lokace se resetují.",370,355,18,MUTED)
-                self.text(f"Získáš trvalý bonus +{self.state.prestige_reward*25} %.",370,390,20,LIME)
+                self.text(f"Produkce bude {compact(min(1e100, self.state.multiplier*2))}×. Další požadavek 4×.",370,390,20,LIME)
             self.button("Ještě ne",(370,463,240,48),lambda:setattr(self,"modal",False))
             self.button("Prodat" if self.modal == "sell" else "Začít novou éru",(630,463,280,48),self.confirm_sale if self.modal == "sell" else self.ascend,True,True)
         self.present()

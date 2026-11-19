@@ -31,7 +31,9 @@ Pokud už `.venv` existuje a Pygame je nainstalovaný, stačí poslední příka
 - **Každý vlastněný Brainrot stojí na mapě samostatně**, včetně stejných druhů. Pod každým vidíš číslo kusu a jeho aktuální level, například `#2 · Lv 7`. Číslo odpovídá kusu daného druhu v inventáři. Po vylepšení se štítek aktualizuje a po prodeji zůstávající kusy zaplní volné místo.
 - Pozemkem vede volná středová cesta. Kamera tě sleduje i v dalších řadách na jihu, takže celý velký pozemek projdeš pomocí WASD / šipek. Dům a spodní plot se při rozšíření posunou za poslední řadu; postavičky se neskládají na sebe ani do jedné ikony s počtem.
 - Všichni vlastnění Brainroti vydělávají i během výprav. Produkce jednoho kusu je základní produkce × jeho level × prestige násobitel.
-- Prestige je dostupné po výdělku milionu Coins v aktuální éře. Resetuje postavičky, Coins, levely, lokace a nesený úlovek a vrátí hráče domů. Každý získaný prestige bod přidává trvalých +25 % produkce. Achievementy zůstávají.
+- Výdělky se zpomalují hlavně ke konci: první dva druhy mají původní produkci 1 a 7 Coins/s, prostřední lokace rostou pozvolněji a poslední druhy vydělávají 18 000 a 24 000 Coins/s místo původních 1,1 a 1,9 milionu. Bez prestige tak postup do posledních lokací výrazně zpomalí. Stejné hodnoty platí i pro offline výdělek.
+- V záložce **Obchod** můžeš koupit další kus druhu, který jsi už chytil a donesl domů. Cena je **4× základní hodnota** (např. Sahur 100 Coins), takže chytání zdarma se vyplatí víc. Nákup vyžaduje volný slot a odemčenou původní lokaci; nový kus začíná na levelu 1. Objevené druhy zůstávají odemčené i po prodeji a prestige. U starších savů se objeví všechny aktuálně vlastněné druhy.
+- První prestige vyžaduje výdělek milionu Coins v aktuální éře. Každé provedení přidá jeden prestige a **zdvojnásobí produkci** (2×, 4×, 8×…). Požadovaný výdělek pro další prestige roste **4×**: 1, 4, 16, 64 milionů Coins atd. Resetuje postavičky, Coins, levely, lokace a nesený úlovek a vrátí hráče domů. Achievementy, objevené druhy a pozemek zůstávají.
 
 ## Oblasti a Brainroti
 

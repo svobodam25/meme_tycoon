@@ -14,6 +14,25 @@ from game_state import LOCATIONS
 
 
 class InterfaceTests(unittest.TestCase):
+    def test_shop_purchase_button(self):
+        with tempfile.TemporaryDirectory() as directory:
+            game = Game(Path(directory)/"save.json", smoke=True)
+            try:
+                game.state.capture(0)
+                game.state.deposit()
+                game.state.coins = 100
+                game.view = "menu"
+                game.tab = "Obchod"
+                game.draw()
+                with patch.object(game, "mouse", return_value=(120, 330)):
+                    game.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=1))
+                self.assertEqual(game.state.levels[0], [1, 1])
+                self.assertEqual(game.state.coins, 0)
+                game.draw()
+                self.assertFalse(any(rect.collidepoint((120, 330)) for rect, _ in game.buttons))
+            finally:
+                pygame.quit()
+
     def test_menu_upgrades_only_selected_individual(self):
         with tempfile.TemporaryDirectory() as directory:
             game=Game(Path(directory)/"save.json",smoke=True)
@@ -34,7 +53,7 @@ class InterfaceTests(unittest.TestCase):
                 self.assertEqual(game.state.levels[0],[1,2])
                 self.assertEqual(game.state.coins,25)
                 self.assertEqual(game.state.owned[0],2)
-                self.assertFalse(hasattr(game,"buy"))
+                self.assertTrue(hasattr(game,"buy"))
             finally:
                 pygame.quit()
 
@@ -65,7 +84,7 @@ class InterfaceTests(unittest.TestCase):
                 game.draw()
                 self.assertEqual(len(game.buttons), 2)
                 game.ascend()
-                self.assertEqual(game.state.prestige, 2)
+                self.assertEqual(game.state.prestige, 1)
                 self.assertTrue(game.path.exists())
                 game.window = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
                 game.draw()
