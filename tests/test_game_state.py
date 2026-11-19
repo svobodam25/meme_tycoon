@@ -13,6 +13,23 @@ def catch(state, index):
 
 
 class EconomyTests(unittest.TestCase):
+    def test_prestige_requires_current_balance_and_resets_coins(self):
+        s = GameState()
+        s.gain(2_000_000)
+        s.coins = s.prestige_price - 1
+        before = (s.coins, s.run_earned, s.prestige)
+        self.assertEqual(s.prestige_reward, 0)
+        self.assertFalse(s.ascend())
+        self.assertEqual((s.coins, s.run_earned, s.prestige), before)
+        s.coins += 1
+        self.assertTrue(s.ascend())
+        self.assertEqual(s.coins, 100)
+        self.assertEqual(s.records[0]['earned'], 2_000_000)
+        self.assertEqual(s.prestige_price, 4_000_000)
+        s.coins = s.prestige_price + 500_000
+        self.assertTrue(s.ascend())
+        self.assertEqual(s.coins, 100)
+
     def test_upgrade_diminishing_returns_prices_and_rarity_hierarchy(self):
         for index, brainrot in enumerate(BRAINROTS):
             s = GameState(coins=1e15, location=7)
@@ -87,7 +104,7 @@ class EconomyTests(unittest.TestCase):
         s.levels[4][0] = 9
         self.assertTrue(s.upgrade(4))
         self.assertIn(8, s.achievements)
-        s.run_earned = s.prestige_price
+        s.coins = s.prestige_price
         before = set(s.achievements)
         s.ascend()
         self.assertTrue(before <= set(s.achievements))
@@ -97,6 +114,7 @@ class EconomyTests(unittest.TestCase):
         for era in range(1, 9):
             catch(s, 0)
             s.levels[0][0] = era
+            s.coins = s.prestige_price
             s.run_earned = s.prestige_price
             self.assertTrue(s.ascend())
         self.assertLessEqual(len(s.records), 15)
@@ -141,9 +159,9 @@ class EconomyTests(unittest.TestCase):
         for level in range(5):
             self.assertEqual(s.prestige_price, 1_000_000 * 4**level)
             self.assertEqual(s.multiplier, 2**level)
-            s.run_earned = s.prestige_price - 1
+            s.coins = s.prestige_price - 1
             self.assertFalse(s.ascend())
-            s.run_earned += 1
+            s.coins += 1
             self.assertTrue(s.ascend())
             self.assertEqual(s.prestige, level + 1)
 
@@ -151,7 +169,7 @@ class EconomyTests(unittest.TestCase):
         s = GameState(location=1)
         catch(s, 2)
         s.sell(2, 0)
-        s.run_earned = s.prestige_price
+        s.coins = s.prestige_price
         s.ascend()
         self.assertIn(2, s.discovered)
         s.coins = 100_000

@@ -34,7 +34,7 @@ Pokud už `.venv` existuje a Pygame je nainstalovaný, stačí poslední příka
 - Všichni vlastnění Brainroti vydělávají i během výprav. Produkce jednoho kusu je základní produkce × násobitel levelu × prestige násobitel. Nové vyvážení platí i pro dosavadní postavy a offline výdělek; uložené levely se zachovávají.
 - Výdělky se zpomalují hlavně ke konci: první dva druhy mají původní produkci 1 a 7 Coins/s, prostřední lokace rostou pozvolněji a poslední druhy vydělávají 18 000 a 24 000 Coins/s místo původních 1,1 a 1,9 milionu. Bez prestige tak postup do posledních lokací výrazně zpomalí. Stejné hodnoty platí i pro offline výdělek.
 - V záložce **Obchod** můžeš koupit další kus druhu, který jsi už chytil a donesl domů. Cena je **4× základní hodnota** (např. Sahur 100 Coins), takže chytání zdarma se vyplatí víc. Nákup vyžaduje volný slot a odemčenou původní lokaci; nový kus začíná na levelu 1. Objevené druhy zůstávají odemčené i po prodeji a prestige. U starších savů se objeví všechny aktuálně vlastněné druhy.
-- První prestige vyžaduje výdělek milionu Coins v aktuální éře. Každé provedení přidá jeden prestige a **zdvojnásobí produkci** (2×, 4×, 8×…). Požadovaný výdělek pro další prestige roste **4×**: 1, 4, 16, 64 milionů Coins atd. Resetuje postavičky, Coins, levely, lokace a nesený úlovek a vrátí hráče domů. Achievementy, objevené druhy a pozemek zůstávají.
+- První prestige **stojí milion aktuálně našetřených Coins**. Celkový výdělek éry nestačí: utracené peníze se do ceny nepočítají. Každé provedení přidá jeden prestige a **zdvojnásobí produkci** (2×, 4×, 8×…). Cena dalšího prestige roste **4×**: 1, 4, 16, 64 milionů Coins atd. Cena je součástí resetu všech Coins na počátečních 100; případný přebytek se nepřenáší. Resetuje také postavičky, levely, lokace a nesený úlovek a vrátí hráče domů. Achievementy, objevené druhy a pozemek zůstávají. Výdělek éry se nadále zaznamenává pro místní žebříček.
 
 ## Oblasti a Brainroti
 
@@ -58,6 +58,10 @@ Vyšší rarity mají výraznější palety: LEGENDARY zlatou, MYTHICAL fialovou
 Záložka **Úspěchy** obsahuje 18 achievementů na třech stránkách. Nové cíle zahrnují rozšiřování pozemku, levely 10 a 100, vzácné úlovky, objevení všech druhů, poslední lokaci, produkci 100 000 Coins/s, miliardu celkového výdělku a opakované prestige. Splněné achievementy zůstávají po prestige.
 
 Záložka **Žebříčky** nabízí tři místní TOP 5: výdělek éry, produkci při prestige a počet vlastněných kusů při prestige. Aktuální éra se porovnává živě; dokončená se zapíše před resetem. Produkce a sbírka jsou stav při prestige, nikoli historická maxima během éry. Rekordy se uchovávají v savu i po prestige. Žebříčky porovnávají tvoje vlastní éry, nejsou online ani multiplayerové; starší savy začnou zaznamenávat dokončené éry od této aktualizace.
+
+**Proč místní žebříček místo online?** Pro rozsah této jednoduché hry by byl důvěryhodný online leaderboard příliš složitý na vytvoření a následnou údržbu. Vyžadoval by server, databázi, identifikaci hráčů, bezpečné odesílání výsledků, řešení výpadků připojení a průběžný provoz hostingu. Samotné nahrání čísel by navíc nestačilo: místní save lze upravit, takže by bylo nutné ověřovat výsledky a bránit podvádění, aby soutěž mezi hráči dávala smysl.
+
+Místní žebříček odpovídá hře pro jednoho hráče: funguje bez internetu, účtu i serveru a umožňuje sledovat vlastní zlepšování mezi prestige érami. Nabízí tak motivaci překonávat osobní rekordy bez složitosti online služby. Není určený k ověřenému porovnávání různých hráčů; online varianta může být samostatným budoucím rozšířením.
 
 **Ctrl+S** uloží postup; hra také ukládá každých 15 sekund a při zavření okna. Na Windows je save v `%LOCALAPPDATA%\MemeTycoon\save.json`, jinde v `~/.local/share/MemeTycoon/save.json`. Offline výdělek je omezený na 8 hodin. Vlastní soubor lze zadat pomocí `--save moje-hra.json`.
 

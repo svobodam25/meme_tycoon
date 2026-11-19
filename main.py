@@ -260,13 +260,13 @@ class Game:
         self.text("Resetuje Coins, postavičky, levely a lokace.",616,344,18,MUTED)
         self.text("Úspěchy, celkový výdělek i pozemek ti zůstávají.",616,376,18,MUTED)
         self.text(f"Násobitel produkce: {compact(s.multiplier)}×",616,436,25,LIME,True)
-        self.text(f"Výdělek v této éře: {compact(s.run_earned)} / {compact(s.prestige_price)}",616,483,18)
-        progress = min(1,s.run_earned/s.prestige_price)
+        self.text(f"Máš {compact(s.coins)} / cena {compact(s.prestige_price)} Coins",616,483,18)
+        progress = min(1,s.coins/s.prestige_price)
         self.box((616,523,592,12),"#344256",6)
         if progress:
             self.box((616,523,max(12,int(592*progress)),12),LIME,6)
-        self.text("Každé prestige: produkce 2× · další požadavek 4×",616,558,18,MUTED)
-        self.button("Provést prestige",(616,623,592,54),lambda:setattr(self,"modal",True),s.prestige_reward>0,True)
+        self.text("Každé prestige: produkce 2× · další cena 4×",616,558,18,MUTED)
+        self.button(f"Koupit prestige · {compact(s.prestige_price)} Coins",(616,623,592,54),lambda:setattr(self,"modal",True),s.prestige_reward>0,True)
 
     def ascend(self):
         if not self.state.ascend():
@@ -335,8 +335,9 @@ class Game:
                 self.text("Postavička i její vylepšení budou odstraněny.",370,423,16,MUTED)
             else:
                 self.text("Připraven na novou éru?",370,299,28,INK,True)
-                self.text("Coins, postavičky, levely a lokace se resetují.",370,355,18,MUTED)
-                self.text(f"Produkce bude {compact(min(1e100, self.state.multiplier*2))}×. Další požadavek 4×.",370,390,20,LIME)
+                self.text(f"Cena prestige: {compact(self.state.prestige_price)} Coins.",370,348,18,INK)
+                self.text(f"Produkce bude {compact(min(1e100, self.state.multiplier*2))}×. Další cena 4×.",370,385,20,LIME)
+                self.text("Coins se vrátí na 100; postavy, levely a lokace se resetují.",370,423,16,MUTED)
             self.button("Ještě ne",(370,463,240,48),lambda:setattr(self,"modal",False))
             self.button("Prodat" if self.modal == "sell" else "Začít novou éru",(630,463,280,48),self.confirm_sale if self.modal == "sell" else self.ascend,True,True)
         self.present()

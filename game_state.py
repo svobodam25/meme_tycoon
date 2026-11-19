@@ -241,7 +241,7 @@ class GameState:
 
     @property
     def prestige_reward(self):
-        return int(self.run_earned >= self.prestige_price)
+        return int(self.coins >= self.prestige_price)
 
     def ascend(self):
         reward = self.prestige_reward
