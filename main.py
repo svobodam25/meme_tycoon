@@ -1,4 +1,4 @@
-"""Brainrot Borough — a small, self-contained Pygame idle tycoon."""
+"""Meme Tycoon — a small, self-contained Pygame idle tycoon."""
 import argparse
 import math
 import os
@@ -31,7 +31,7 @@ def compact(value):
 class Game:
     def __init__(self, path=None, smoke=False):
         pygame.init()
-        pygame.display.set_caption("Brainrot Borough | Meme impérium")
+        pygame.display.set_caption("Meme Tycoon | Meme impérium")
         self.window = pygame.display.set_mode((W, H), pygame.RESIZABLE)
         self.surface = pygame.Surface((W, H))
         self.clock = pygame.time.Clock()
@@ -287,9 +287,9 @@ class Game:
             self.present()
             return
         self.box((28,28,46,46),LIME,14)
-        self.text("B",51,50,29,"#1b3023",True,True)
-        self.text("BRAINROT",87,25,27,INK,True)
-        self.text("B O R O U G H",88,58,13,MUTED,True)
+        self.text("M",51,50,29,"#1b3023",True,True)
+        self.text("MEME",87,25,27,INK,True)
+        self.text("T Y C O O N",88,58,13,MUTED,True)
         self.text("Z malého dvorku do celého vesmíru.",293,44,17,MUTED)
         for x,label,value,color in ((716,"COINS",compact(self.state.coins),LIME),(923,"ZA SEKUNDU",compact(self.state.income),INK),(1110,"PRESTIGE",f"{compact(self.state.multiplier)}×","#c0a2f1")):
             self.text(label,x,24,12,MUTED,True)
@@ -408,7 +408,7 @@ class Game:
 
 
 def main():
-    parser=argparse.ArgumentParser(description="Brainrot Borough — idle tycoon")
+    parser=argparse.ArgumentParser(description="Meme Tycoon — idle tycoon")
     parser.add_argument("--save",type=Path,help="Vlastní cesta k uložené hře")
     parser.add_argument("--smoke-test",action="store_true",help="Vykreslí několik snímků bez uložení")
     parser.add_argument("--screenshot",type=Path,help="Uloží poslední snímek do PNG")

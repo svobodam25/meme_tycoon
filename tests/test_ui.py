@@ -58,6 +58,7 @@ class InterfaceTests(unittest.TestCase):
     def test_menu_upgrades_only_selected_individual(self):
         with tempfile.TemporaryDirectory() as directory:
             game=Game(Path(directory)/"save.json",smoke=True)
+            game.state.coins = 1000
             try:
                 for _ in range(2):
                     game.state.capture(0)
@@ -73,7 +74,7 @@ class InterfaceTests(unittest.TestCase):
                 with patch.object(game,"mouse",return_value=(1000,685)):
                     game.handle_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN,button=1))
                 self.assertEqual(game.state.levels[0],[1,2])
-                self.assertEqual(game.state.coins,25)
+                self.assertEqual(game.state.coins,820)
                 self.assertEqual(game.state.owned[0],2)
                 self.assertTrue(hasattr(game,"buy"))
             finally:
@@ -82,6 +83,8 @@ class InterfaceTests(unittest.TestCase):
     def test_screens_actions_and_resize(self):
         with tempfile.TemporaryDirectory() as directory:
             game = Game(Path(directory)/"save.json", smoke=True)
+            game.state.coins = 1000
+            self.assertIn("Meme Tycoon", pygame.display.get_caption()[0])
             try:
                 game.world.interact(game)
                 self.assertEqual(game.view, "menu")

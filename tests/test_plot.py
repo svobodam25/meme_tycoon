@@ -29,9 +29,9 @@ class PlotTests(unittest.TestCase):
         self.assertFalse(s.capture(0))
         s.levels[0][3]=4
         before=s.coins
-        self.assertEqual(s.sell_price(0,3),50)
+        self.assertEqual(s.sell_price(0,3),21)
         self.assertTrue(s.sell(0,3))
-        self.assertEqual(s.coins,before+50)
+        self.assertEqual(s.coins,before+21)
         self.assertEqual(s.owned[0],7)
         self.assertEqual(s.levels[0],[1]*7)
         self.assertAlmostEqual(s.income,7)

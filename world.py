@@ -326,7 +326,7 @@ class World:
                     game.text(b.rarity,x,y-cy+44,12,"#fff2c7",True,True)
         # Fixed HUD; the map continues behind it.
         game.box((20,18,905,83),"#19282b",16)
-        game.text("BRAINROT BOROUGH",40,29,22,"#e2f5c4",True)
+        game.text("MEME TYCOON",40,29,22,"#e2f5c4",True)
         game.text("Tvůj pozemek" if self.at_home else LOCATIONS[self.region][0],40,63,17,"#afc7b4")
         game.text(f"{self.short(state.coins)} Coins",410,32,24,"#d3f878",True)
         game.text(f"Produkce {self.short(state.income)} / s",680,37,18,"#eaf0dd")

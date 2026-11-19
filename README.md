@@ -1,8 +1,8 @@
-# Brainrot Borough
+# Meme Tycoon
 
 2D idle tycoon v Pythonu a Pygame. Prozkoumávej mapu, chytej Brainroty, nos je na vlastní pozemek a jejich výdělek investuj do jednotlivých postaviček a nových oblastí. Hra má 8 oblastí, 16 druhů Brainrotů, prestige, achievementy a automatické ukládání. Grafika je kreslená přímo v Pygame.
 
-## Spuštění hry Brainrot Borough
+## Spuštění hry Meme Tycoon
 
 Implementace používá Python 3.10+ a Pygame. Spuštění v PowerShellu:
 
@@ -22,15 +22,16 @@ Pokud už `.venv` existuje a Pygame je nainstalovaný, stačí poslední příka
 - Divoký Brainrot se po chycení znovu objeví za 25 sekund hry na mapě.
 - **E na pozemku** otevře správu impéria: inventář, úspěchy a prestige. **Esc** nebo **Zpět na mapu** menu zavře. Mimo pozemek není správa přístupná.
 - **E u zamčené brány** odemkne další oblast za Coins. Lokace lze odemknout také v panelu správy u úspěchů a prestige. Inventář vždy ukazuje úlovky ze všech lokací.
-- **Brainroty získáš pouze chycením na mapě.** Každý úlovek má vlastní obsazený slot v inventáři; prázdné sloty se nekreslí. Dva stejní Brainroti zabírají dva samostatné sloty. Základní pozemek má **8 slotů**; obsazení i kapacitu vidíš v inventáři a na mapě.
+- **Nové druhy objevíš chycením na mapě; další kusy můžeš koupit v obchodě.** Každý kus má vlastní obsazený slot v inventáři; prázdné sloty se nekreslí. Dva stejní Brainroti zabírají dva samostatné sloty. Základní pozemek má **8 slotů**; obsazení i kapacitu vidíš v inventáři a na mapě.
 - Klikni na slot: vpravo se zobrazí větší postavička, její rarita, původ, číslo kusu, level, produkce a tlačítko vylepšení. Vylepšení platí jen pro vybraný kus. Nový úlovek začíná na levelu 1, maximální level je 100.
+- Vylepšení mají klesající přínos: level 100 dává nejvýše 3× základní produkci a vždy méně než první druh následující vyšší rarity při stejném prestige. Násobitel levelu L je `1 + B × log₁₀₀(L)`, kde `B = min(2; 0,9 × produkce první vyšší rarity / základní produkce − 1)`; poslední rarita používá B = 2. Cena je `B × max(základní produkce × 90; základní hodnota × 0,12) × (1 + 0,25 × (L − 1))`, zaokrouhlená nahoru. První upgrade se bez prestige vrací z přidané produkce za přibližně 10 minut nebo déle, další pomaleji; prestige návratnost zkracuje. Sahur například stojí na level 2 **180 Coins** a produkce roste z 1 na přibližně **1,301 Coins/s**. Inventář ukazuje přírůstek i návratnost v minutách; jde o cenu dělenou přidaným výdělkem, nikoli o čas potřebný na našetření celou sbírkou.
 - Inventář posouváš **kolečkem myši**, **Page Up / Page Down** nebo **Home / End**. **Šipky** vybírají sousední sloty a posunou seznam k výběru. Zobrazují se jen sloty ve viditelné části seznamu, takže není nutné vykreslovat celou velkou sbírku najednou.
-- Vybraného Brainrota můžeš **prodat** tlačítkem pod vylepšením. Prodej vyžaduje potvrzení; odstraní právě tento kus včetně jeho levelů, uvolní slot a vyplatí polovinu jeho základní hodnoty × aktuální level (zaokrouhleno nahoru). Ostatní kusy zůstanou beze změny. Prodej se nepočítá jako produkční výdělek pro prestige.
+- Vybraného Brainrota můžeš **prodat** tlačítkem pod vylepšením. Prodej vyžaduje potvrzení; odstraní právě tento kus včetně jeho levelů, uvolní slot a vyplatí polovinu jeho základní hodnoty × násobitel levelu (zaokrouhleno nahoru). Prodejní hodnota tak roste stejně pozvolna jako produkce a opakované vylepšování a prodávání nevytváří zisk. Ostatní kusy zůstanou beze změny. Prodej se nepočítá jako produkční výdělek pro prestige.
 - Když je pozemek plný, dalšího Brainrota nechytíš. Nesený úlovek si rezervuje jeden slot, takže při návratu domů má vždy místo. Pro další lov nejdřív někoho prodej nebo rozšiř pozemek.
 - Tlačítkem **Pozemek +8 slotů** nahoře v inventáři koupíš rozšíření. Přidá 8 slotů, rozšíří oplocení a prodlouží pozemek na mapě o dvě další řady podstavců. Celkem lze koupit šest rozšíření: za **1 000**, **4 000**, **16 000**, **64 000**, **256 000** a **1 024 000 Coins**. Nová hra tak může vyrůst z 8 na **56 slotů**. Rozšíření pozemku zůstávají i po prestige.
 - **Každý vlastněný Brainrot stojí na mapě samostatně**, včetně stejných druhů. Pod každým vidíš číslo kusu a jeho aktuální level, například `#2 · Lv 7`. Číslo odpovídá kusu daného druhu v inventáři. Po vylepšení se štítek aktualizuje a po prodeji zůstávající kusy zaplní volné místo.
 - Pozemkem vede volná středová cesta. Kamera tě sleduje i v dalších řadách na jihu, takže celý velký pozemek projdeš pomocí WASD / šipek. Dům a spodní plot se při rozšíření posunou za poslední řadu; postavičky se neskládají na sebe ani do jedné ikony s počtem.
-- Všichni vlastnění Brainroti vydělávají i během výprav. Produkce jednoho kusu je základní produkce × jeho level × prestige násobitel.
+- Všichni vlastnění Brainroti vydělávají i během výprav. Produkce jednoho kusu je základní produkce × násobitel levelu × prestige násobitel. Nové vyvážení platí i pro dosavadní postavy a offline výdělek; uložené levely se zachovávají.
 - Výdělky se zpomalují hlavně ke konci: první dva druhy mají původní produkci 1 a 7 Coins/s, prostřední lokace rostou pozvolněji a poslední druhy vydělávají 18 000 a 24 000 Coins/s místo původních 1,1 a 1,9 milionu. Bez prestige tak postup do posledních lokací výrazně zpomalí. Stejné hodnoty platí i pro offline výdělek.
 - V záložce **Obchod** můžeš koupit další kus druhu, který jsi už chytil a donesl domů. Cena je **4× základní hodnota** (např. Sahur 100 Coins), takže chytání zdarma se vyplatí víc. Nákup vyžaduje volný slot a odemčenou původní lokaci; nový kus začíná na levelu 1. Objevené druhy zůstávají odemčené i po prodeji a prestige. U starších savů se objeví všechny aktuálně vlastněné druhy.
 - První prestige vyžaduje výdělek milionu Coins v aktuální éře. Každé provedení přidá jeden prestige a **zdvojnásobí produkci** (2×, 4×, 8×…). Požadovaný výdělek pro další prestige roste **4×**: 1, 4, 16, 64 milionů Coins atd. Resetuje postavičky, Coins, levely, lokace a nesený úlovek a vrátí hráče domů. Achievementy, objevené druhy a pozemek zůstávají.
@@ -58,7 +59,9 @@ Záložka **Úspěchy** obsahuje 18 achievementů na třech stránkách. Nové c
 
 Záložka **Žebříčky** nabízí tři místní TOP 5: výdělek éry, produkci při prestige a počet vlastněných kusů při prestige. Aktuální éra se porovnává živě; dokončená se zapíše před resetem. Produkce a sbírka jsou stav při prestige, nikoli historická maxima během éry. Rekordy se uchovávají v savu i po prestige. Žebříčky porovnávají tvoje vlastní éry, nejsou online ani multiplayerové; starší savy začnou zaznamenávat dokončené éry od této aktualizace.
 
-**Ctrl+S** uloží postup; hra také ukládá každých 15 sekund a při zavření okna. Na Windows je save v `%LOCALAPPDATA%\BrainrotBorough\save.json`, jinde v `~/.local/share/BrainrotBorough/save.json`. Offline výdělek je omezený na 8 hodin. Vlastní soubor lze zadat pomocí `--save moje-hra.json`.
+**Ctrl+S** uloží postup; hra také ukládá každých 15 sekund a při zavření okna. Na Windows je save v `%LOCALAPPDATA%\MemeTycoon\save.json`, jinde v `~/.local/share/MemeTycoon/save.json`. Offline výdělek je omezený na 8 hodin. Vlastní soubor lze zadat pomocí `--save moje-hra.json`.
+
+Pokud nový výchozí save neexistuje, hra načte dosavadní `BrainrotBorough/save.json` ze stejného nadřazeného adresáře. Další ukládání používá složku `MemeTycoon`; původní soubor zůstane zachovaný. Vlastní cesta přes `--save` se nemění.
 
 Po spuštění se objevíš na vlastním pozemku. Nesený úlovek se ukládá také a po návratu se automaticky odevzdá. Starší uložené hry se automaticky převedou: zachovají se Coins, lokace, počet Brainrotů i jejich dosavadní levely. Pokud měl druh společný level 3, každý jeho vlastněný kus dostane level 3 a dál se vylepšuje samostatně. Sbírky z verze s neomezeným inventářem dostanou zdarma dostatečnou základní kapacitu, zaokrouhlenou na násobek osmi včetně neseného úlovku. Nic se nemaže; zakoupená rozšíření tuto kapacitu dále navyšují. Nečitelný save se nepřepisuje; hra zobrazí upozornění a vypne ukládání. Pro nový začátek přesuň save při vypnuté hře. Používej jednu instanci hry na jeden save.
 

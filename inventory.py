@@ -142,9 +142,12 @@ class Inventory:
         self.name(game,b.name,902,232,326,22)
         game.character(1064,415,b.shape,b.color,1.55)
         game.text(f"Kus #{unit+1} · Level {level}",902,528,23,"#eef1e7",True)
-        game.text(f"Produkce {self.short(b.production*level*state.multiplier)} Coins / s",902,568,18,"#d3f878")
+        game.text(f"Produkce {self.short(state.unit_production(species,level))} Coins / s",902,568,18,"#d3f878")
         game.text(f"Původ: {LOCATIONS[b.location][0]}",902,601,15,"#98a5b7")
         price = state.upgrade_price(species,unit)
+        if level < 100:
+            gain = state.upgrade_gain(species,unit)
+            game.text(f"Další level: +{self.short(gain)} / s · {price/gain/60:.1f} min",902,630,16,"#d3f878")
         label = f"Vylepšit · {self.short(price)} Coins" if level < 100 else "Maximální level 100"
         game.button(label,(902,662,324,52),lambda:game.upgrade(species,unit),level<100 and state.coins>=price,True)
         game.button(f"Prodat · {self.short(state.sell_price(species,unit))} Coins",(902,719,324,28),lambda:game.request_sale(species,unit))
@@ -152,6 +155,8 @@ class Inventory:
 
     @staticmethod
     def short(value):
+        if 0 < value < 10:
+            return f"{value:.3f}".rstrip("0").rstrip(".")
         for divisor,suffix in ((1e12,"T"),(1e9,"B"),(1e6,"M"),(1e3,"k")):
             if value >= divisor:
                 return f"{value/divisor:.2f}".rstrip("0").rstrip(".")+suffix

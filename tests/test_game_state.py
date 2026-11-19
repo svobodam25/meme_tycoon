@@ -2,8 +2,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
-from game_state import BRAINROTS, LOCATIONS, GameState, OFFLINE_LIMIT
+from game_state import BRAINROTS, LOCATIONS, GameState, OFFLINE_LIMIT, save_path
 
 
 def catch(state, index):
@@ -12,6 +13,68 @@ def catch(state, index):
 
 
 class EconomyTests(unittest.TestCase):
+    def test_upgrade_diminishing_returns_prices_and_rarity_hierarchy(self):
+        for index, brainrot in enumerate(BRAINROTS):
+            s = GameState(coins=1e15, location=7)
+            catch(s, index)
+            first_price = s.upgrade_price(index)
+            self.assertGreaterEqual(first_price / s.upgrade_gain(index), 590)
+            before = s.income
+            self.assertTrue(s.upgrade(index))
+            self.assertGreater(s.income-before, 0)
+            self.assertLess(s.income-before, brainrot.production)
+            self.assertEqual(s.used_slots, 1)
+            self.assertLess(s.sell_price(index, 0), brainrot.cost/2+first_price)
+            previous_gain = float('inf')
+            previous_price = 0
+            for level in range(1, 100):
+                s.levels[index][0] = level
+                gain = s.upgrade_gain(index)
+                price = s.upgrade_price(index)
+                sale_before = s.sell_price(index, 0)
+                s.levels[index][0] += 1
+                sale_after = s.sell_price(index, 0)
+                s.levels[index][0] -= 1
+                self.assertGreater(gain, 0)
+                self.assertLess(gain, previous_gain)
+                self.assertGreaterEqual(price, previous_price)
+                self.assertGreaterEqual(price/gain, 590)
+                self.assertLess(sale_after-sale_before, price)
+                previous_gain, previous_price = gain, price
+            next_rarity = next((b for b in BRAINROTS[index+1:] if b.rarity != brainrot.rarity), None)
+            if next_rarity:
+                self.assertLess(s.unit_production(index, 100), next_rarity.production)
+            self.assertLessEqual(s.unit_production(index, 100), brainrot.production*3)
+            s.levels[index][0] = 99
+            price = s.upgrade_price(index)
+            s.coins = price-1
+            self.assertFalse(s.upgrade(index))
+            s.coins = price
+            self.assertTrue(s.upgrade(index))
+            self.assertEqual(s.coins, 0)
+            self.assertEqual(s.levels[index][0], 100)
+            self.assertFalse(s.upgrade(index))
+
+    def test_renamed_save_migrates_without_overwriting_old_file(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict('os.environ', LOCALAPPDATA=directory):
+            legacy = Path(directory)/'BrainrotBorough'/'save.json'
+            s = GameState(coins=1234)
+            catch(s, 0)
+            s.levels[0][0] = 10
+            s.save(legacy, now=1000)
+            original = legacy.read_bytes()
+            loaded, _ = GameState.load(now=1000)
+            self.assertEqual(loaded.coins, 1234)
+            self.assertEqual(loaded.levels[0], [10])
+            self.assertEqual(save_path(), Path(directory)/'MemeTycoon'/'save.json')
+            loaded.coins = 5678
+            loaded.save(now=1000)
+            self.assertEqual(legacy.read_bytes(), original)
+            loaded, _ = GameState.load(now=1000)
+            self.assertEqual(loaded.coins, 5678)
+            fresh, _ = GameState.load(Path(directory)/'custom.json', now=1000)
+            self.assertEqual(fresh.coins, 100)
+
     def test_new_achievements_unlock_and_survive_prestige(self):
         s = GameState(coins=1e12, location=7)
         self.assertTrue(s.expand_plot())
@@ -114,10 +177,12 @@ class EconomyTests(unittest.TestCase):
         self.assertEqual(s.coins, 100)
         self.assertEqual(s.income, 2)
         self.assertEqual(s.tick(10), 20)
+        s.gain(100)
         self.assertTrue(s.upgrade(0, 1))
         self.assertEqual(s.levels[0], [1, 2])
-        self.assertAlmostEqual(s.income, 3)
-        self.assertEqual(s.coins, 45)
+        self.assertAlmostEqual(s.income, 2.301029995664)
+        self.assertEqual(s.coins, 40)
+        s.coins = s.upgrade_price(0, 1) - 1
         self.assertFalse(s.upgrade(0, 1))
         self.assertFalse(s.upgrade(0, 2))
         catch(s,0)
@@ -212,7 +277,7 @@ class EconomyTests(unittest.TestCase):
             self.assertEqual(s.unlock(),level<7)
         self.assertIn(5,s.achievements)
 
-    def test_legacy_migration_preserves_income_and_individual_levels(self):
+    def test_legacy_migration_preserves_individual_levels_with_new_balance(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/"save.json"
             GameState().save(path,now=1000)
@@ -221,7 +286,7 @@ class EconomyTests(unittest.TestCase):
             path.write_text(json.dumps(data))
             state,_=GameState.load(path,now=1000)
             self.assertEqual(state.levels[:2],[[3,3],[2]])
-            self.assertEqual(state.income,20)
+            self.assertAlmostEqual(state.income,12.061452479087194)
             self.assertEqual(len(state.owned),16)
             state.coins=1e6
             state.upgrade(0,1)

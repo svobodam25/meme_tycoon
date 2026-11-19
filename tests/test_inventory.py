@@ -70,7 +70,7 @@ class InventoryTests(unittest.TestCase):
         self.click((1000,685))
         self.assertEqual(g.state.levels[0][-1],2)
         self.assertEqual(g.state.levels[0][0],1)
-        self.assertEqual(g.state.coins,925)
+        self.assertEqual(g.state.coins,820)
         g.handle_event(pygame.event.Event(pygame.KEYDOWN,key=pygame.K_HOME,mod=0))
         self.assertEqual(g.inventory.scroll,0)
         g.save()

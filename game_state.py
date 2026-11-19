@@ -1,5 +1,6 @@
 """Game rules and versioned saves; independent of the rendering library."""
 from dataclasses import dataclass, field
+from functools import lru_cache
 import json
 import math
 import os
@@ -68,9 +69,22 @@ SLOTS_PER_EXPANSION = 8
 MAX_PLOT_LEVEL = 6
 
 
+@lru_cache(maxsize=None)
+def level_bonus_limit(index):
+    brainrot = BRAINROTS[index]
+    next_rarity = next((b for b in BRAINROTS[index+1:] if b.rarity != brainrot.rarity), None)
+    # Even level 100 stays below the first species of the next rarity.
+    return min(2.0, .9 * next_rarity.production / brainrot.production - 1) if next_rarity else 2.0
+
+
+@lru_cache(maxsize=None)
+def level_production(index, level):
+    return BRAINROTS[index].production * (1 + level_bonus_limit(index) * math.log(level, 100))
+
+
 def save_path():
     base = Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share"))
-    return base / "BrainrotBorough" / "save.json"
+    return base / "MemeTycoon" / "save.json"
 
 
 @dataclass
@@ -112,7 +126,8 @@ class GameState:
     def sell_price(self, index, unit):
         if not 0 <= index < len(BRAINROTS) or not 0 <= unit < len(self.levels[index]):
             return 0
-        return math.ceil(BRAINROTS[index].cost*self.levels[index][unit]*.5)
+        b = BRAINROTS[index]
+        return math.ceil(b.cost * .5 * level_production(index, self.levels[index][unit]) / b.production)
 
     def sell(self, index, unit):
         price = self.sell_price(index,unit)
@@ -164,7 +179,16 @@ class GameState:
         return True
 
     def production(self, index):
-        return BRAINROTS[index].production * sum(self.levels[index]) * self.multiplier
+        return sum(level_production(index, level) for level in self.levels[index]) * self.multiplier
+
+    def unit_production(self, index, level):
+        return level_production(index, level) * self.multiplier
+
+    def upgrade_gain(self, index, unit=0):
+        level = self.levels[index][unit]
+        if level >= 100:
+            return 0.0
+        return self.unit_production(index, level+1) - self.unit_production(index, level)
 
     @property
     def income(self):
@@ -172,7 +196,11 @@ class GameState:
 
     def upgrade_price(self, index, unit=0):
         level = self.levels[index][unit] if 0 <= unit < len(self.levels[index]) else 1
-        return math.ceil(BRAINROTS[index].cost * 3 * 2.1 ** (level - 1))
+        b = BRAINROTS[index]
+        # Roughly ten minutes of added income for the first upgrade without
+        # prestige; later upgrades take longer. The value floor prevents resale arbitrage.
+        base_price = max(b.production * 90, b.cost * .12)
+        return math.ceil(level_bonus_limit(index) * base_price * (1 + .25 * (level - 1)))
 
     def gain(self, amount):
         amount = max(0, min(amount, MAX_VALUE))
@@ -272,7 +300,11 @@ class GameState:
     def load(cls, path=None, now=None):
         path = Path(path) if path is not None else save_path()
         if not path.exists():
-            return cls(), 0.0
+            legacy = path.parent.parent / "BrainrotBorough" / "save.json"
+            if path == save_path() and legacy.exists():
+                path = legacy
+            else:
+                return cls(), 0.0
         data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict) or type(data.get("version")) is not int or data["version"] not in (1, 2, 3, 4, 5):
             raise ValueError("Neznámý formát uložené hry.")
